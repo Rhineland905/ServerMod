@@ -29,17 +29,21 @@ public class SampleMod112 {
     public void preInit(FMLPreInitializationEvent event) {
         AIManager.INSTANCE.init(event);
         AbilityManager.INSTANCE.init(event.getModConfigurationDirectory());
+        AuthManager.INSTANCE.init(event.getModConfigurationDirectory());
         TabListManager.INSTANCE.init();
 
         MinecraftForge.EVENT_BUS.register(TabListManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(AIManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(AbilityManager.INSTANCE);
+        MinecraftForge.EVENT_BUS.register(AuthManager.INSTANCE);
     }
 
     @Mod.EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new CommandNoAI());
         event.registerServerCommand(new CommandAbility());
+        event.registerServerCommand(new CommandLogin());
+        event.registerServerCommand(new CommandRegister());
         LOGGER.info("UnnamedWorld 2 server mod loaded.");
     }
 }
