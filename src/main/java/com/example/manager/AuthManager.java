@@ -1,5 +1,6 @@
-package com.example;
+package com.example.manager;
 
+import com.example.SampleMod112;
 import com.google.gson.*;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
@@ -85,7 +86,7 @@ public class AuthManager {
 
     // Runs on server tick — iterates ONLY non-authenticated players (freezePos).
     // Fast-path: skips entirely when everyone is logged in.
-    // Runs every 4 ticks (5×/sec) instead of every tick — 75% less work.
+    // Runs every 4 ticks (5x/sec) instead of every tick — 75% less work.
     @SubscribeEvent
     public void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;

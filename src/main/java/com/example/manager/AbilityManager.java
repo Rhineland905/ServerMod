@@ -1,5 +1,7 @@
-package com.example;
+package com.example.manager;
 
+import com.example.SampleMod112;
+import com.example.ability.Ability;
 import com.google.gson.*;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
@@ -9,13 +11,17 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.MobEffects;
 import net.minecraft.potion.PotionEffect;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingSetAttackTargetEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
@@ -31,17 +37,17 @@ public class AbilityManager {
     private static final DamageSource DEMON_WATER_DMG =
             new DamageSource("demon_water").setDamageBypassesArmor();
 
-    private final Map<Ability, Set<UUID>> abilityMap = new EnumMap<>(Ability.class);
+    private final Map<Ability, Set<UUID>> abilityMap    = new EnumMap<>(Ability.class);
+    // Mobs that are allowed to aggro warden players (because they were hit first)
     private final Set<UUID> allowedAggroMobs = new HashSet<>();
     private File saveFile;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    // ServerTickEvent counter — fires exactly once per tick (not once per world)
     private int golemTickCounter = 0;
 
     public void init(File configDir) {
         saveFile = new File(configDir, "samplemod112_abilities.json");
-        for (Ability a : Ability.values()) {
-            abilityMap.put(a, new HashSet<>());
-        }
+        for (Ability a : Ability.values()) abilityMap.put(a, new HashSet<>());
         load();
     }
 
@@ -79,9 +85,8 @@ public class AbilityManager {
             for (Ability ability : Ability.values()) {
                 if (!obj.has(ability.name())) continue;
                 for (JsonElement el : obj.getAsJsonArray(ability.name())) {
-                    try {
-                        abilityMap.get(ability).add(UUID.fromString(el.getAsString()));
-                    } catch (IllegalArgumentException ignored) {}
+                    try { abilityMap.get(ability).add(UUID.fromString(el.getAsString())); }
+                    catch (IllegalArgumentException ignored) {}
                 }
             }
         } catch (Exception e) {
@@ -103,9 +108,9 @@ public class AbilityManager {
         }
     }
 
-    // --- Events ---
+    // --- Tick events ---
 
-    // WARDEN + DEMON: единый тик-хендлер для обеих способностей
+    // WARDEN + DEMON: one handler for both abilities, runs per player
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
@@ -114,13 +119,30 @@ public class AbilityManager {
         if (player.world.isRemote) return;
 
         UUID uuid = player.getUniqueID();
+        if (hasAbility(uuid, Ability.WARDEN)) tickWarden(player);
+        if (hasAbility(uuid, Ability.DEMON))  tickDemon(player);
+    }
 
-        if (hasAbility(uuid, Ability.WARDEN)) {
-            tickWarden(player);
-        }
+    // WARDEN: golem aggro scan — uses ServerTickEvent so it fires ONCE per tick,
+    // not once per world (WorldTickEvent would fire 3x with overworld/nether/end).
+    @SubscribeEvent
+    public void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
+        if (++golemTickCounter % 20 != 0) return;
 
-        if (hasAbility(uuid, Ability.DEMON)) {
-            tickDemon(player);
+        MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+        if (server == null) return;
+
+        for (WorldServer world : server.worlds) {
+            List<EntityPlayerMP> wardens = getWardenPlayers(world);
+            if (wardens.isEmpty()) continue;
+            for (Entity e : world.loadedEntityList) {
+                if (!isGolem(e)) continue;
+                EntityLiving golem = (EntityLiving) e;
+                if (golem.getAttackTarget() != null) continue;
+                EntityPlayerMP nearest = findNearest(golem, wardens);
+                if (nearest != null) golem.setAttackTarget(nearest);
+            }
         }
     }
 
@@ -138,11 +160,9 @@ public class AbilityManager {
         if (fr == null || fr.getDuration() < 20) {
             player.addPotionEffect(new PotionEffect(MobEffects.FIRE_RESISTANCE, 60, 0, false, false));
         }
-
         if (player.isInWater() && player.ticksExisted % 20 == 0) {
             player.attackEntityFrom(DEMON_WATER_DMG, 1.0f);
         }
-
         if (player.isInLava()) {
             PotionEffect sp = player.getActivePotionEffect(MobEffects.SPEED);
             if (sp == null || sp.getDuration() < 20) {
@@ -151,7 +171,9 @@ public class AbilityManager {
         }
     }
 
-    // DEMON: отменяем урон от огня
+    // --- Combat events ---
+
+    // DEMON: cancel fire damage
     @SubscribeEvent
     public void onLivingAttack(LivingAttackEvent event) {
         if (!(event.getEntity() instanceof EntityPlayerMP)) return;
@@ -161,7 +183,7 @@ public class AbilityManager {
         }
     }
 
-    // WARDEN: голем всегда агрится; обычный моб — только если его ударил варден
+    // WARDEN: golem always aggros; normal mob only if hit first
     @SubscribeEvent
     public void onSetAttackTarget(LivingSetAttackTargetEvent event) {
         EntityLivingBase target = event.getTarget();
@@ -176,11 +198,11 @@ public class AbilityManager {
             }
             return;
         }
-
+        // Mob de-targeted or targeting non-warden — remove from allowed set
         allowedAggroMobs.remove(mobId);
     }
 
-    // WARDEN: если варден ударил моба, тот может агриться в ответ
+    // WARDEN: if warden hits a mob, that mob may aggro back
     @SubscribeEvent
     public void onPlayerAttack(AttackEntityEvent event) {
         if (!(event.getEntityPlayer() instanceof EntityPlayerMP)) return;
@@ -194,23 +216,10 @@ public class AbilityManager {
         ((EntityLiving) target).setAttackTarget(player);
     }
 
-    // WARDEN: заставляем големов агриться раз в секунду
+    // Clean up allowedAggroMobs when a mob dies — prevents unbounded growth
     @SubscribeEvent
-    public void onWorldTick(TickEvent.WorldTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        if (event.world.isRemote) return;
-        if (++golemTickCounter % 20 != 0) return;
-
-        List<EntityPlayerMP> wardens = getWardenPlayers(event.world);
-        if (wardens.isEmpty()) return;
-
-        for (Entity e : event.world.loadedEntityList) {
-            if (!isGolem(e)) continue;
-            EntityLiving golem = (EntityLiving) e;
-            if (golem.getAttackTarget() != null) continue;
-            EntityPlayerMP nearest = findNearest(golem, wardens);
-            if (nearest != null) golem.setAttackTarget(nearest);
-        }
+    public void onLivingDeath(LivingDeathEvent event) {
+        allowedAggroMobs.remove(event.getEntity().getUniqueID());
     }
 
     // --- Helpers ---

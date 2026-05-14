@@ -1,6 +1,6 @@
 package com.example.command;
 
-import com.example.AIManager;
+import com.example.manager.AIManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;

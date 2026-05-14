@@ -1,5 +1,6 @@
-package com.example;
+package com.example.manager;
 
+import com.example.SampleMod112;
 import com.google.gson.*;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
@@ -18,7 +19,8 @@ public class AIManager {
 
     public static final AIManager INSTANCE = new AIManager();
 
-    private final Set<String> disabledMobs = new HashSet<>();
+    // Store ResourceLocations directly — avoids toString() in hot event path
+    private final Set<ResourceLocation> disabledMobs = new HashSet<>();
     private File saveFile;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -30,19 +32,21 @@ public class AIManager {
     // --- Public API ---
 
     public boolean isMobAIDisabled(String mobId) {
-        return disabledMobs.contains(normalize(mobId));
+        return disabledMobs.contains(new ResourceLocation(normalize(mobId)));
     }
 
     public Set<String> getDisabledMobs() {
-        return Collections.unmodifiableSet(disabledMobs);
+        Set<String> result = new HashSet<>();
+        for (ResourceLocation rl : disabledMobs) result.add(rl.toString());
+        return Collections.unmodifiableSet(result);
     }
 
     public void setMobAIDisabled(String mobId, boolean disabled, MinecraftServer server) {
-        String id = normalize(mobId);
-        if (disabled) disabledMobs.add(id);
-        else          disabledMobs.remove(id);
+        ResourceLocation rl = new ResourceLocation(normalize(mobId));
+        if (disabled) disabledMobs.add(rl);
+        else          disabledMobs.remove(rl);
         save();
-        applyToWorld(server, id, disabled);
+        applyToWorld(server, rl, disabled);
     }
 
     // --- Persistence ---
@@ -52,9 +56,7 @@ public class AIManager {
         try (Reader r = new FileReader(saveFile)) {
             JsonArray arr = gson.fromJson(r, JsonArray.class);
             if (arr == null) return;
-            for (JsonElement el : arr) {
-                disabledMobs.add(el.getAsString());
-            }
+            for (JsonElement el : arr) disabledMobs.add(new ResourceLocation(el.getAsString()));
         } catch (Exception e) {
             SampleMod112.LOGGER.error("Failed to load noai list", e);
         }
@@ -63,7 +65,7 @@ public class AIManager {
     private void save() {
         try (Writer w = new FileWriter(saveFile)) {
             JsonArray arr = new JsonArray();
-            for (String id : disabledMobs) arr.add(id);
+            for (ResourceLocation rl : disabledMobs) arr.add(rl.toString());
             gson.toJson(arr, w);
         } catch (Exception e) {
             SampleMod112.LOGGER.error("Failed to save noai list", e);
@@ -72,17 +74,16 @@ public class AIManager {
 
     // --- Helpers ---
 
-    // "zombie" -> "minecraft:zombie", "minecraft:zombie" -> "minecraft:zombie"
     public static String normalize(String id) {
         return id.contains(":") ? id.toLowerCase() : "minecraft:" + id.toLowerCase();
     }
 
-    private void applyToWorld(MinecraftServer server, String normalizedId, boolean noAI) {
+    private void applyToWorld(MinecraftServer server, ResourceLocation targetRL, boolean noAI) {
         for (WorldServer world : server.worlds) {
             for (Entity entity : world.loadedEntityList) {
                 if (!(entity instanceof EntityLiving)) continue;
-                ResourceLocation key = EntityList.getKey(entity);
-                if (key != null && normalizedId.equals(key.toString())) {
+                // Direct ResourceLocation comparison — no string allocation
+                if (targetRL.equals(EntityList.getKey(entity))) {
                     ((EntityLiving) entity).setNoAI(noAI);
                 }
             }
@@ -94,8 +95,8 @@ public class AIManager {
         if (event.getWorld().isRemote) return;
         Entity entity = event.getEntity();
         if (!(entity instanceof EntityLiving)) return;
-        ResourceLocation key = EntityList.getKey(entity);
-        if (key != null && disabledMobs.contains(key.toString())) {
+        // Direct ResourceLocation comparison — no toString(), no String allocation
+        if (disabledMobs.contains(EntityList.getKey(entity))) {
             ((EntityLiving) entity).setNoAI(true);
         }
     }

@@ -1,7 +1,7 @@
 package com.example.command;
 
-import com.example.Ability;
-import com.example.AbilityManager;
+import com.example.ability.Ability;
+import com.example.manager.AbilityManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;

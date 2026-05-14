@@ -1,5 +1,6 @@
-package com.example;
+package com.example.manager;
 
+import com.example.SampleMod112;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.play.server.SPacketPlayerListHeaderFooter;
 import net.minecraft.server.MinecraftServer;
