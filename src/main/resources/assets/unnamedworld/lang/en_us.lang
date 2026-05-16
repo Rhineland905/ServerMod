@@ -1,0 +1,111 @@
+# -------------------------------------------------------
+# UnnamedWorld 2 — English localisation (en_us)
+# -------------------------------------------------------
+# NOTE: this mod is server-side only. TextComponentString
+# messages are rendered as-is on the client. These keys
+# serve as documentation and a reference for future ports.
+# -------------------------------------------------------
+
+# --- Mod metadata ---
+unnamedworld.name=UnnamedWorld 2
+unnamedworld.description=Server-side mod: auth, vanish, op-mode, abilities, spawn/AI control and memory optimisation.
+
+# -------------------------------------------------------
+# Abilities
+# -------------------------------------------------------
+ability.warden.name=Warden
+ability.warden.desc=Burns in sunlight; mobs ignore you, but iron and snow golems always attack.
+
+ability.demon.name=Demon
+ability.demon.desc=Immune to fire damage; takes damage in water; moves faster in lava.
+
+ability.fish.name=Fish
+ability.fish.desc=Burns in sunlight out of water/rain; never drowns; in water/rain: Night Vision.
+
+# -------------------------------------------------------
+# Auth (/login, /register)
+# -------------------------------------------------------
+command.login.usage=/login <password>
+command.login.success=Successfully logged in.
+command.login.wrong_password=Wrong password.
+command.login.already=You are already logged in.
+command.login.not_registered=You are not registered. Use /register <password>.
+
+command.register.usage=/register <password>
+command.register.success=Account created. You are now logged in.
+command.register.already=This account already exists. Use /login <password>.
+
+command.auth.not_logged_in=You must log in first. Use /login <password>.
+command.auth.frozen=Log in to move.
+
+# -------------------------------------------------------
+# Vanish (/vanish, /v)
+# -------------------------------------------------------
+command.vanish.usage=/vanish [player]
+command.vanish.on=You are now vanished.
+command.vanish.off=You are now visible.
+command.vanish.other.on=%s is now vanished.
+command.vanish.other.off=%s is now visible.
+command.vanish.player_only=This command is for players only.
+
+# -------------------------------------------------------
+# Op Mode (/opmode)
+# -------------------------------------------------------
+command.opmode.usage=/opmode
+command.opmode.activated=[OP] OP mode activated. All commands available.
+command.opmode.deactivated=[Player] Player mode activated. OP commands are disabled.
+command.opmode.player_only=This command is for players only.
+command.opmode.blocked=You are in player mode. Use /opmode to switch.
+
+# -------------------------------------------------------
+# Abilities (/ability)
+# -------------------------------------------------------
+command.ability.usage=/ability give|remove <player> <warden|demon>
+command.ability.list.usage=/ability list [player]
+command.ability.given=Ability "%s" granted to %s.
+command.ability.removed=Ability "%s" removed from %s.
+command.ability.unknown=Unknown ability: %s. Available: warden, demon.
+command.ability.list.header=Abilities of %s:
+command.ability.list.none=No abilities.
+command.ability.player_only=Player only.
+
+# -------------------------------------------------------
+# No-AI (/noai)
+# -------------------------------------------------------
+command.noai.usage=/noai <entity_id> <on|off>
+command.noai.enabled=AI disabled for %s.
+command.noai.disabled=AI enabled for %s.
+
+# -------------------------------------------------------
+# No-Spawn (/nospawn)
+# -------------------------------------------------------
+command.nospawn.usage=/nospawn <entity_id> <on|off>  |  /nospawn list
+command.nospawn.added=%s added to spawn blocklist.
+command.nospawn.removed=%s removed from spawn blocklist.
+command.nospawn.list.header=Blocked entities:
+command.nospawn.list.empty=Spawn blocklist is empty.
+
+# -------------------------------------------------------
+# Purge (/purge)
+# -------------------------------------------------------
+command.purge.usage=/purge <entity_id> [block_radius]
+command.purge.result=Removed %d entities of type %s.
+
+# -------------------------------------------------------
+# End Portal (/endportal)
+# -------------------------------------------------------
+command.endportal.usage=/endportal <on|off>
+command.endportal.enabled=End portal: enabled.
+command.endportal.disabled=End portal: disabled.
+
+# -------------------------------------------------------
+# Memory Optimisation (/memopt)
+# -------------------------------------------------------
+command.memopt.usage=/memopt <info|clean|gc|set <items|xp|interval> <n>>
+command.memopt.info.header=--- Memory Optimisation Info ---
+command.memopt.cleaned=Cleaned: %d items, %d xp-orbs.
+command.memopt.gc=Garbage collection requested.
+command.memopt.set.items=Item limit per chunk set to %d.
+command.memopt.set.xp=XP orb limit per chunk set to %d.
+command.memopt.set.interval=Cleanup interval set to %d ticks.
+command.memopt.set.unknown=Unknown setting. Use: items | xp | interval.

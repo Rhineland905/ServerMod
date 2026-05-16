@@ -1,0 +1,111 @@
+# -------------------------------------------------------
+# UnnamedWorld 2 — Русская локализация (ru_ru)
+# -------------------------------------------------------
+# ПРИМЕЧАНИЕ: мод работает только на сервере. Сообщения
+# через TextComponentString передаются клиенту как есть.
+# Эти ключи служат документацией и справочником.
+# -------------------------------------------------------
+
+# --- Метаданные мода ---
+unnamedworld.name=UnnamedWorld 2
+unnamedworld.description=Серверный мод: авторизация, ваниш, режим ОПа, способности, управление спавном/AI и оптимизация памяти.
+
+# -------------------------------------------------------
+# Способности
+# -------------------------------------------------------
+ability.warden.name=Страж
+ability.warden.desc=Горит днём на солнце; мобы игнорируют тебя, но железные и снежные големы всегда атакуют.
+
+ability.demon.name=Демон
+ability.demon.desc=Иммунитет к огню; получает урон в воде; быстрее двигается в лаве.
+
+ability.fish.name=Рыба
+ability.fish.desc=Горит на солнце вне воды/дождя; никогда не тонет; в воде/дожде: ночное зрение.
+
+# -------------------------------------------------------
+# Авторизация (/login, /register)
+# -------------------------------------------------------
+command.login.usage=/login <пароль>
+command.login.success=Вы успешно вошли.
+command.login.wrong_password=Неверный пароль.
+command.login.already=Вы уже вошли в систему.
+command.login.not_registered=Вы не зарегистрированы. Используйте /register <пароль>.
+
+command.register.usage=/register <пароль>
+command.register.success=Аккаунт создан. Вы вошли в систему.
+command.register.already=Этот аккаунт уже существует. Используйте /login <пароль>.
+
+command.auth.not_logged_in=Сначала войдите в систему. Используйте /login <пароль>.
+command.auth.frozen=Войдите в систему, чтобы двигаться.
+
+# -------------------------------------------------------
+# Ваниш (/vanish, /v)
+# -------------------------------------------------------
+command.vanish.usage=/vanish [игрок]
+command.vanish.on=Вы скрыты.
+command.vanish.off=Вы снова видимы.
+command.vanish.other.on=%s скрыт.
+command.vanish.other.off=%s снова видим.
+command.vanish.player_only=Команда только для игроков.
+
+# -------------------------------------------------------
+# Режим ОПа (/opmode)
+# -------------------------------------------------------
+command.opmode.usage=/opmode
+command.opmode.activated=[OP] Режим ОПа активирован. Все команды доступны.
+command.opmode.deactivated=[Player] Режим игрока активирован. ОП-команды недоступны.
+command.opmode.player_only=Команда только для игроков.
+command.opmode.blocked=Ты в режиме игрока. Используй /opmode чтобы переключиться.
+
+# -------------------------------------------------------
+# Способности (/ability)
+# -------------------------------------------------------
+command.ability.usage=/ability give|remove <игрок> <warden|demon>
+command.ability.list.usage=/ability list [игрок]
+command.ability.given=Способность "%s" выдана игроку %s.
+command.ability.removed=Способность "%s" удалена у игрока %s.
+command.ability.unknown=Неизвестная способность: %s. Доступны: warden, demon.
+command.ability.list.header=Способности игрока %s:
+command.ability.list.none=Нет способностей.
+command.ability.player_only=Только для игроков.
+
+# -------------------------------------------------------
+# Отключение AI (/noai)
+# -------------------------------------------------------
+command.noai.usage=/noai <entity_id> <on|off>
+command.noai.enabled=AI отключён для %s.
+command.noai.disabled=AI включён для %s.
+
+# -------------------------------------------------------
+# Блокировка спавна (/nospawn)
+# -------------------------------------------------------
+command.nospawn.usage=/nospawn <entity_id> <on|off>  |  /nospawn list
+command.nospawn.added=%s добавлен в список блокировки спавна.
+command.nospawn.removed=%s удалён из списка блокировки спавна.
+command.nospawn.list.header=Заблокированные существа:
+command.nospawn.list.empty=Список блокировки пуст.
+
+# -------------------------------------------------------
+# Очистка сущностей (/purge)
+# -------------------------------------------------------
+command.purge.usage=/purge <entity_id> [радиус_блоков]
+command.purge.result=Удалено %d сущностей типа %s.
+
+# -------------------------------------------------------
+# Портал в Энд (/endportal)
+# -------------------------------------------------------
+command.endportal.usage=/endportal <on|off>
+command.endportal.enabled=Портал в Энд: включён.
+command.endportal.disabled=Портал в Энд: отключён.
+
+# -------------------------------------------------------
+# Оптимизация памяти (/memopt)
+# -------------------------------------------------------
+command.memopt.usage=/memopt <info|clean|gc|set <items|xp|interval> <n>>
+command.memopt.info.header=--- Информация об оптимизации памяти ---
+command.memopt.cleaned=Очищено: %d предметов, %d шаров опыта.
+command.memopt.gc=Запрошена сборка мусора.
+command.memopt.set.items=Лимит предметов на чанк установлен: %d.
+command.memopt.set.xp=Лимит шаров опыта на чанк установлен: %d.
+command.memopt.set.interval=Интервал очистки установлен: %d тиков.
+command.memopt.set.unknown=Неизвестный параметр. Используй: items | xp | interval.

@@ -1,13 +1,13 @@
 [
 	{
-		"modid": "samplemod112",
-		"name": "Sample Mod 1.12",
-		"description": "Sample mod for 1.12.2, using ForgeGradle 5.1.",
+		"modid": "unnamedworld",
+		"name": "UnnamedWorld 2",
+		"description": "Server-side mod for UnnamedWorld 2: auth, vanish, op-mode, abilities, spawn/AI control and memory optimisation.",
 		"version": "${version}",
 		"mcversion": "1.12.2",
 		"url": "",
 		"updateUrl": "",
-		"authorList": ["You!"],
+		"authorList": ["UnnamedWorld Team"],
 		"credits": "",
 		"logoFile": "",
 		"screenshots": [],

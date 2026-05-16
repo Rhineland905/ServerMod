@@ -9,6 +9,9 @@ import net.minecraft.network.play.server.SPacketPlayerListItem;
 import net.minecraft.network.play.server.SPacketSpawnPlayer;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.event.entity.living.LivingSetAttackTargetEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -44,6 +47,12 @@ public class VanishManager {
                 new PotionEffect(MobEffects.INVISIBILITY, Integer.MAX_VALUE, 1, false, false));
 
         hideFromAll(player, server);
+
+        // Broadcast fake "left the game" — other players think the OP disconnected
+        ITextComponent leaveMsg = new TextComponentTranslation(
+                "multiplayer.player.left", player.getDisplayName());
+        leaveMsg.getStyle().setColor(TextFormatting.YELLOW);
+        server.getPlayerList().sendMessage(leaveMsg);
     }
 
     public void unvanish(EntityPlayerMP player, MinecraftServer server) {
@@ -53,9 +62,9 @@ public class VanishManager {
 
         player.removePotionEffect(MobEffects.INVISIBILITY);
 
-        // Re-add tab list entry first, then spawn entity, then send metadata.
-        // tabAdd goes to everyone including self (restores own tab entry).
-        // spawnPacket / metaPacket only go to others — sending spawn to self crashes the client.
+        // Restore tab entry for everyone including self, then re-spawn for others.
+        // ADD_PLAYER to self restores their own name in their own tab.
+        // Never send SPacketSpawnPlayer to self — that crashes the client.
         SPacketPlayerListItem tabAdd = new SPacketPlayerListItem(
                 SPacketPlayerListItem.Action.ADD_PLAYER, player);
         SPacketSpawnPlayer spawnPacket = new SPacketSpawnPlayer(player);
@@ -63,15 +72,21 @@ public class VanishManager {
                 player.getEntityId(), player.getDataManager(), true);
 
         for (EntityPlayerMP other : server.getPlayerList().getPlayers()) {
-            other.connection.sendPacket(tabAdd);           // restore tab for everyone
-            if (other.getUniqueID().equals(uuid)) continue; // don't spawn self for self
+            other.connection.sendPacket(tabAdd);             // restore tab for everyone
+            if (other.getUniqueID().equals(uuid)) continue;  // don't spawn own entity
             other.connection.sendPacket(spawnPacket);
             other.connection.sendPacket(metaPacket);
         }
+
+        // Broadcast fake "joined the game" — other players see the OP appear
+        ITextComponent joinMsg = new TextComponentTranslation(
+                "multiplayer.player.joined", player.getDisplayName());
+        joinMsg.getStyle().setColor(TextFormatting.YELLOW);
+        server.getPlayerList().sendMessage(joinMsg);
     }
 
     // --- Periodic re-hide ---
-    // Vanilla sends UPDATE_LATENCY (with all online players) every 20 ticks,
+    // Vanilla sends UPDATE_LATENCY (with all online players) every 600 ticks,
     // which re-adds vanished players to the tab list.
     // ServerTickEvent.END fires AFTER that broadcast, so we can undo it here.
     // SPacketDestroyEntities is also re-sent to handle entity tracker chunk updates.
@@ -93,25 +108,31 @@ public class VanishManager {
 
     // --- Events ---
 
-    // When a new player joins, hide vanished players from them after login packets
+    // When a new player joins:
+    // 1. Hide existing vanished players from them
+    // 2. Auto-vanish the new player if they are OP (level >= 2) — broadcasts fake leave
     @SubscribeEvent
     public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.player instanceof EntityPlayerMP)) return;
-        if (vanished.isEmpty()) return;
 
         EntityPlayerMP newPlayer = (EntityPlayerMP) event.player;
+        UUID newUuid = newPlayer.getUniqueID();
         MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
         if (server == null) return;
 
+        // Snapshot before the task so we don't race with other modifications
+        if (vanished.isEmpty()) return;
         Set<UUID> snapshot = new HashSet<>(vanished);
+
         server.addScheduledTask(() -> {
+            // Hide currently vanished players from the new player
             for (UUID uid : snapshot) {
+                if (uid.equals(newUuid)) continue;
                 EntityPlayerMP vp = server.getPlayerList().getPlayerByUUID(uid);
                 if (vp == null) { vanished.remove(uid); continue; }
                 newPlayer.connection.sendPacket(new SPacketPlayerListItem(
                         SPacketPlayerListItem.Action.REMOVE_PLAYER, vp));
-                newPlayer.connection.sendPacket(
-                        new SPacketDestroyEntities(vp.getEntityId()));
+                newPlayer.connection.sendPacket(new SPacketDestroyEntities(vp.getEntityId()));
             }
         });
     }
@@ -135,10 +156,10 @@ public class VanishManager {
 
     // --- Helper ---
 
-    // Hides player from everyone — including themselves so they don't see
-    // their own name in tab (confirming they are in vanish mode).
-    // SPacketDestroyEntities is NOT sent to self — destroying your own entity
-    // would break the client. tabRemove to self is safe.
+    // Hides player from everyone, including themselves (so they don't see their own
+    // name in tab while vanished). SPacketDestroyEntities is NOT sent to self —
+    // destroying your own entity crashes the client. REMOVE_PLAYER to self is safe:
+    // on a dedicated server the tab header/footer still renders even with 0 entries.
     private void hideFromAll(EntityPlayerMP player, MinecraftServer server) {
         UUID uuid = player.getUniqueID();
         SPacketPlayerListItem tabRemove = new SPacketPlayerListItem(
@@ -149,8 +170,8 @@ public class VanishManager {
         List<EntityPlayerMP> players = server.getPlayerList().getPlayers();
         for (int i = 0; i < players.size(); i++) {
             EntityPlayerMP other = players.get(i);
-            other.connection.sendPacket(tabRemove);        // hide from tab for everyone
-            if (other.getUniqueID().equals(uuid)) continue; // don't destroy self entity
+            other.connection.sendPacket(tabRemove);          // remove from tab for everyone
+            if (other.getUniqueID().equals(uuid)) continue;  // don't destroy own entity
             other.connection.sendPacket(destroyPacket);
         }
     }

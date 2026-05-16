@@ -37,12 +37,14 @@ public class AbilityManager {
     private static final DamageSource DEMON_WATER_DMG =
             new DamageSource("demon_water").setDamageBypassesArmor();
 
-    private final Map<Ability, Set<UUID>> abilityMap    = new EnumMap<>(Ability.class);
-    // Mobs that are allowed to aggro warden players (because they were hit first)
+    // Ability → set of player UUIDs
+    private final Map<Ability, Set<UUID>> abilityMap   = new EnumMap<>(Ability.class);
+    // Mobs allowed to aggro Warden players because they were hit first
     private final Set<UUID> allowedAggroMobs = new HashSet<>();
+
     private File saveFile;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    // ServerTickEvent counter — fires exactly once per tick (not once per world)
+    // Golem aggro scan runs every 20 ticks via ServerTickEvent (once per tick, not per world)
     private int golemTickCounter = 0;
 
     public void init(File configDir) {
@@ -54,7 +56,8 @@ public class AbilityManager {
     // --- Public API ---
 
     public boolean hasAbility(UUID uuid, Ability ability) {
-        return abilityMap.getOrDefault(ability, Collections.emptySet()).contains(uuid);
+        // abilityMap is always fully populated in init(), direct get() is safe
+        return abilityMap.get(ability).contains(uuid);
     }
 
     public Set<Ability> getAbilities(UUID uuid) {
@@ -110,7 +113,6 @@ public class AbilityManager {
 
     // --- Tick events ---
 
-    // WARDEN + DEMON: one handler for both abilities, runs per player
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
@@ -121,10 +123,10 @@ public class AbilityManager {
         UUID uuid = player.getUniqueID();
         if (hasAbility(uuid, Ability.WARDEN)) tickWarden(player);
         if (hasAbility(uuid, Ability.DEMON))  tickDemon(player);
+        if (hasAbility(uuid, Ability.FISH))   tickFish(player);
     }
 
-    // WARDEN: golem aggro scan — uses ServerTickEvent so it fires ONCE per tick,
-    // not once per world (WorldTickEvent would fire 3x with overworld/nether/end).
+    // Golem aggro scan — ServerTickEvent fires once per tick (WorldTickEvent fires per world)
     @SubscribeEvent
     public void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
@@ -145,6 +147,8 @@ public class AbilityManager {
             }
         }
     }
+
+    // --- Ability tick logic ---
 
     private void tickWarden(EntityPlayerMP player) {
         if (!player.world.isDaytime()) return;
@@ -171,9 +175,34 @@ public class AbilityManager {
         }
     }
 
+    private void tickFish(EntityPlayerMP player) {
+        // Never drowns — Water Breathing refreshed before it runs out (no particles)
+        PotionEffect wb = player.getActivePotionEffect(MobEffects.WATER_BREATHING);
+        if (wb == null || wb.getDuration() < 40) {
+            player.addPotionEffect(new PotionEffect(MobEffects.WATER_BREATHING, 120, 0, false, false));
+        }
+
+        // isRainingAt: true only when raining AND sky-exposed AND biome supports rain
+        boolean wet = player.isInWater() || player.world.isRainingAt(player.getPosition());
+
+        if (wet) {
+            // Night vision — kept above 200 ticks to prevent Minecraft's flicker effect
+            PotionEffect nv = player.getActivePotionEffect(MobEffects.NIGHT_VISION);
+            if (nv == null || nv.getDuration() < 260) {
+                player.addPotionEffect(new PotionEffect(MobEffects.NIGHT_VISION, 400, 0, false, false));
+            }
+        } else {
+            // Burns in direct sunlight
+            if (player.world.isDaytime()) {
+                BlockPos eye = new BlockPos(player.posX, player.posY + player.getEyeHeight(), player.posZ);
+                if (player.world.canSeeSky(eye)) player.setFire(2);
+            }
+        }
+    }
+
     // --- Combat events ---
 
-    // DEMON: cancel fire damage
+    // DEMON: immune to fire damage
     @SubscribeEvent
     public void onLivingAttack(LivingAttackEvent event) {
         if (!(event.getEntity() instanceof EntityPlayerMP)) return;
@@ -183,7 +212,7 @@ public class AbilityManager {
         }
     }
 
-    // WARDEN: golem always aggros; normal mob only if hit first
+    // WARDEN: golems always aggro; other mobs only if the warden hit them first
     @SubscribeEvent
     public void onSetAttackTarget(LivingSetAttackTargetEvent event) {
         EntityLivingBase target = event.getTarget();
@@ -198,11 +227,11 @@ public class AbilityManager {
             }
             return;
         }
-        // Mob de-targeted or targeting non-warden — remove from allowed set
+        // Mob de-targeted or targeting a non-warden player — remove from allowed set
         allowedAggroMobs.remove(mobId);
     }
 
-    // WARDEN: if warden hits a mob, that mob may aggro back
+    // WARDEN: hitting a mob allows it to aggro back
     @SubscribeEvent
     public void onPlayerAttack(AttackEntityEvent event) {
         if (!(event.getEntityPlayer() instanceof EntityPlayerMP)) return;
@@ -216,7 +245,7 @@ public class AbilityManager {
         ((EntityLiving) target).setAttackTarget(player);
     }
 
-    // Clean up allowedAggroMobs when a mob dies — prevents unbounded growth
+    // Prevent allowedAggroMobs growing unboundedly
     @SubscribeEvent
     public void onLivingDeath(LivingDeathEvent event) {
         allowedAggroMobs.remove(event.getEntity().getUniqueID());
@@ -234,12 +263,12 @@ public class AbilityManager {
         return result;
     }
 
-    private EntityPlayerMP findNearest(Entity entity, List<EntityPlayerMP> players) {
+    private EntityPlayerMP findNearest(Entity from, List<EntityPlayerMP> players) {
         EntityPlayerMP nearest = null;
-        double minDist = Double.MAX_VALUE;
+        double minDistSq = Double.MAX_VALUE;
         for (EntityPlayerMP p : players) {
-            double d = entity.getDistanceSq(p);
-            if (d < 256.0 && d < minDist) { minDist = d; nearest = p; }
+            double dSq = from.getDistanceSq(p);
+            if (dSq < 256.0 && dSq < minDistSq) { minDistSq = dSq; nearest = p; }
         }
         return nearest;
     }

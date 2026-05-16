@@ -72,7 +72,7 @@ public class CommandUW extends CommandBase {
 
         if (isOp) {
             msg(sender, TextFormatting.AQUA, "" + TextFormatting.BOLD + "--- Ops only ---");
-            msg(sender, TextFormatting.YELLOW, "/ability give|remove <player> <warden|demon>");
+            msg(sender, TextFormatting.YELLOW, "/ability give|remove <player> <warden|demon|fish>");
             msg(sender, TextFormatting.YELLOW, "/ability list [player]");
             msg(sender, TextFormatting.YELLOW, "/noai <entity_id> <on|off>");
             msg(sender, TextFormatting.YELLOW, "/nospawn <entity_id> <on|off>  |  /nospawn list");

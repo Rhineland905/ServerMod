@@ -9,12 +9,14 @@ import com.example.command.CommandNoAI;
 import com.example.command.CommandNoSpawn;
 import com.example.command.CommandPurge;
 import com.example.command.CommandRegister;
+import com.example.command.CommandOpMode;
 import com.example.command.CommandVanish;
 import com.example.manager.AIManager;
 import com.example.manager.AbilityManager;
 import com.example.manager.AuthManager;
 import com.example.manager.SpawnManager;
 import com.example.manager.MemoryManager;
+import com.example.manager.OpModeManager;
 import com.example.manager.PortalManager;
 import com.example.manager.TabListManager;
 import com.example.manager.VanishManager;
@@ -48,6 +50,7 @@ public class SampleMod112 {
         AuthManager.INSTANCE.init(event.getModConfigurationDirectory());
         SpawnManager.INSTANCE.init(event.getModConfigurationDirectory());
         MemoryManager.INSTANCE.init(event.getModConfigurationDirectory());
+        OpModeManager.INSTANCE.init(event.getModConfigurationDirectory());
         PortalManager.INSTANCE.init(event);
         TabListManager.INSTANCE.init();
 
@@ -58,6 +61,7 @@ public class SampleMod112 {
         MinecraftForge.EVENT_BUS.register(AuthManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(SpawnManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(MemoryManager.INSTANCE);
+        MinecraftForge.EVENT_BUS.register(OpModeManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(PortalManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(VanishManager.INSTANCE);
     }
@@ -74,6 +78,7 @@ public class SampleMod112 {
         event.registerServerCommand(new CommandMemOpt());
         event.registerServerCommand(new CommandEndPortal());
         event.registerServerCommand(new CommandVanish());
+        event.registerServerCommand(new CommandOpMode());
         LOGGER.info("UnnamedWorld 2 server mod loaded.");
     }
 }
