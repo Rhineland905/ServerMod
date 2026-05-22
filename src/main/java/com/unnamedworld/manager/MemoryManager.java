@@ -1,6 +1,6 @@
-package com.example.manager;
+package com.unnamedworld.manager;
 
-import com.example.SampleMod112;
+import com.unnamedworld.ServerMod;
 import com.google.gson.*;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityItem;
@@ -57,7 +57,7 @@ public class MemoryManager {
         }
 
         if (lastItemsRemoved > 0 || lastXpRemoved > 0) {
-            SampleMod112.LOGGER.info("[MemOpt] Cleaned {} items, {} xp-orbs",
+            ServerMod.LOGGER.info("[MemOpt] Cleaned {} items, {} xp-orbs",
                     lastItemsRemoved, lastXpRemoved);
         }
     }
@@ -142,7 +142,7 @@ public class MemoryManager {
             if (obj.has("xpOrbsPerChunkLimit"))  xpOrbsPerChunkLimit  = obj.get("xpOrbsPerChunkLimit").getAsInt();
             if (obj.has("cleanupIntervalTicks")) cleanupIntervalTicks = obj.get("cleanupIntervalTicks").getAsInt();
         } catch (Exception e) {
-            SampleMod112.LOGGER.error("Failed to load memopt config", e);
+            ServerMod.LOGGER.error("Failed to load memopt config", e);
         }
     }
 
@@ -154,7 +154,7 @@ public class MemoryManager {
             obj.addProperty("cleanupIntervalTicks", cleanupIntervalTicks);
             gson.toJson(obj, w);
         } catch (Exception e) {
-            SampleMod112.LOGGER.error("Failed to save memopt config", e);
+            ServerMod.LOGGER.error("Failed to save memopt config", e);
         }
     }
 }

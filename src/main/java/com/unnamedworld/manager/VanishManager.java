@@ -1,4 +1,4 @@
-package com.example.manager;
+package com.unnamedworld.manager;
 
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.player.EntityPlayerMP;

@@ -1,4 +1,4 @@
-package com.example.ability;
+package com.unnamedworld.ability;
 
 public enum Ability {
 
@@ -14,7 +14,7 @@ public enum Ability {
 
     FISH(
         "fish",
-        "Горит на солнце вне воды/дождя, никогда не тонет, без воды >30 сек — умирает, под водой быстрее копает"
+        "Горит на солнце вне воды/дождя, никогда не тонет, в воде/дожде — ночное зрение"
     );
 
     public final String id;

@@ -1,6 +1,6 @@
-package com.example.command;
+package com.unnamedworld.command;
 
-import com.example.manager.AuthManager;
+import com.unnamedworld.manager.AuthManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;

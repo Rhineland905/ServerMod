@@ -1,6 +1,6 @@
-package com.example.manager;
+package com.unnamedworld.manager;
 
-import com.example.SampleMod112;
+import com.unnamedworld.ServerMod;
 import com.google.gson.*;
 import net.minecraft.entity.EntityList;
 import net.minecraft.util.ResourceLocation;
@@ -75,7 +75,7 @@ public class SpawnManager {
             if (arr == null) return;
             for (JsonElement el : arr) blocked.add(new ResourceLocation(el.getAsString()));
         } catch (Exception e) {
-            SampleMod112.LOGGER.error("Failed to load nospawn list", e);
+            ServerMod.LOGGER.error("Failed to load nospawn list", e);
         }
     }
 
@@ -85,7 +85,7 @@ public class SpawnManager {
             for (ResourceLocation rl : blocked) arr.add(rl.toString());
             gson.toJson(arr, w);
         } catch (Exception e) {
-            SampleMod112.LOGGER.error("Failed to save nospawn list", e);
+            ServerMod.LOGGER.error("Failed to save nospawn list", e);
         }
     }
 

@@ -1,6 +1,6 @@
-package com.example.command;
+package com.unnamedworld.command;
 
-import com.example.manager.OpModeManager;
+import com.unnamedworld.manager.OpModeManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayerMP;

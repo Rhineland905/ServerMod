@@ -1,8 +1,8 @@
 [
 	{
 		"modid": "unnamedworld",
-		"name": "UnnamedWorld 2",
-		"description": "Server-side mod for UnnamedWorld 2: auth, vanish, op-mode, abilities, spawn/AI control and memory optimisation.",
+		"name": "ServerMod",
+		"description": "Server-side mod: auth, vanish, op-mode, abilities, spawn/AI control and memory optimisation.",
 		"version": "${version}",
 		"mcversion": "1.12.2",
 		"url": "",

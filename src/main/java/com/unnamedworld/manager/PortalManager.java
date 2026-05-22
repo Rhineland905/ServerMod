@@ -1,4 +1,4 @@
-package com.example.manager;
+package com.unnamedworld.manager;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;

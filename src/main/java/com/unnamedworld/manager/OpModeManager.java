@@ -1,6 +1,6 @@
-package com.example.manager;
+package com.unnamedworld.manager;
 
-import com.example.SampleMod112;
+import com.unnamedworld.ServerMod;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
@@ -80,7 +80,7 @@ public class OpModeManager {
                 CompressedStreamTools.writeCompressed(compound, fos);
             }
         } catch (Exception e) {
-            SampleMod112.LOGGER.error("Failed to save {} inventory for {}", mode, uuid, e);
+            ServerMod.LOGGER.error("Failed to save {} inventory for {}", mode, uuid, e);
         }
     }
 
@@ -93,7 +93,7 @@ public class OpModeManager {
             // getTagList("inventory", 10) — 10 = TAG_Compound (element type)
             player.inventory.readFromNBT(compound.getTagList("inventory", 10));
         } catch (Exception e) {
-            SampleMod112.LOGGER.error("Failed to load {} inventory for {}", mode, uuid, e);
+            ServerMod.LOGGER.error("Failed to load {} inventory for {}", mode, uuid, e);
         }
     }
 

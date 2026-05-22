@@ -1,6 +1,6 @@
-package com.example.command;
+package com.unnamedworld.command;
 
-import com.example.manager.PortalManager;
+import com.unnamedworld.manager.PortalManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;

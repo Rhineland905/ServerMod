@@ -1,6 +1,6 @@
-package com.example.manager;
+package com.unnamedworld.manager;
 
-import com.example.SampleMod112;
+import com.unnamedworld.ServerMod;
 import com.google.gson.*;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
@@ -58,7 +58,7 @@ public class AIManager {
             if (arr == null) return;
             for (JsonElement el : arr) disabledMobs.add(new ResourceLocation(el.getAsString()));
         } catch (Exception e) {
-            SampleMod112.LOGGER.error("Failed to load noai list", e);
+            ServerMod.LOGGER.error("Failed to load noai list", e);
         }
     }
 
@@ -68,7 +68,7 @@ public class AIManager {
             for (ResourceLocation rl : disabledMobs) arr.add(rl.toString());
             gson.toJson(arr, w);
         } catch (Exception e) {
-            SampleMod112.LOGGER.error("Failed to save noai list", e);
+            ServerMod.LOGGER.error("Failed to save noai list", e);
         }
     }
 

@@ -1,6 +1,6 @@
-package com.example.manager;
+package com.unnamedworld.manager;
 
-import com.example.SampleMod112;
+import com.unnamedworld.ServerMod;
 import com.google.gson.*;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
@@ -161,7 +161,7 @@ public class AuthManager {
                 catch (IllegalArgumentException ignored) {}
             }
         } catch (Exception e) {
-            SampleMod112.LOGGER.error("Failed to load auth data", e);
+            ServerMod.LOGGER.error("Failed to load auth data", e);
         }
     }
 
@@ -171,7 +171,7 @@ public class AuthManager {
             hashes.forEach((uuid, hash) -> obj.addProperty(uuid.toString(), hash));
             gson.toJson(obj, w);
         } catch (Exception e) {
-            SampleMod112.LOGGER.error("Failed to save auth data", e);
+            ServerMod.LOGGER.error("Failed to save auth data", e);
         }
     }
 

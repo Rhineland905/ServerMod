@@ -1,4 +1,4 @@
-package com.example.command;
+package com.unnamedworld.command;
 
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;

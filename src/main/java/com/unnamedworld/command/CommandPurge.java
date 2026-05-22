@@ -1,4 +1,4 @@
-package com.example.command;
+package com.unnamedworld.command;
 
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -16,7 +16,7 @@ import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.registry.EntityEntry;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraft.entity.EntityList;
-import com.example.manager.SpawnManager;
+import com.unnamedworld.manager.SpawnManager;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;

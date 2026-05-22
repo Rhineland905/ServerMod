@@ -1,6 +1,6 @@
-package com.example.command;
+package com.unnamedworld.command;
 
-import com.example.manager.MemoryManager;
+import com.unnamedworld.manager.MemoryManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;

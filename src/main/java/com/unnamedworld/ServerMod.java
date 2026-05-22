@@ -1,25 +1,25 @@
-package com.example;
+package com.unnamedworld;
 
-import com.example.command.CommandAbility;
-import com.example.command.CommandEndPortal;
-import com.example.command.CommandUW;
-import com.example.command.CommandLogin;
-import com.example.command.CommandMemOpt;
-import com.example.command.CommandNoAI;
-import com.example.command.CommandNoSpawn;
-import com.example.command.CommandPurge;
-import com.example.command.CommandRegister;
-import com.example.command.CommandOpMode;
-import com.example.command.CommandVanish;
-import com.example.manager.AIManager;
-import com.example.manager.AbilityManager;
-import com.example.manager.AuthManager;
-import com.example.manager.SpawnManager;
-import com.example.manager.MemoryManager;
-import com.example.manager.OpModeManager;
-import com.example.manager.PortalManager;
-import com.example.manager.TabListManager;
-import com.example.manager.VanishManager;
+import com.unnamedworld.command.CommandAbility;
+import com.unnamedworld.command.CommandEndPortal;
+import com.unnamedworld.command.CommandUW;
+import com.unnamedworld.command.CommandLogin;
+import com.unnamedworld.command.CommandMemOpt;
+import com.unnamedworld.command.CommandNoAI;
+import com.unnamedworld.command.CommandNoSpawn;
+import com.unnamedworld.command.CommandPurge;
+import com.unnamedworld.command.CommandRegister;
+import com.unnamedworld.command.CommandOpMode;
+import com.unnamedworld.command.CommandVanish;
+import com.unnamedworld.manager.AIManager;
+import com.unnamedworld.manager.AbilityManager;
+import com.unnamedworld.manager.AuthManager;
+import com.unnamedworld.manager.SpawnManager;
+import com.unnamedworld.manager.MemoryManager;
+import com.unnamedworld.manager.OpModeManager;
+import com.unnamedworld.manager.PortalManager;
+import com.unnamedworld.manager.TabListManager;
+import com.unnamedworld.manager.VanishManager;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -28,16 +28,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 @Mod(
-    modid = SampleMod112.MODID,
-    name = SampleMod112.NAME,
-    version = SampleMod112.VERSION,
+    modid = ServerMod.MODID,
+    name = ServerMod.NAME,
+    version = ServerMod.VERSION,
     serverSideOnly = true,
     acceptableRemoteVersions = "*"
 )
-public class SampleMod112 {
+public class ServerMod {
 
     public static final String MODID       = "unnamedworld";
-    public static final String NAME        = "UnnamedWorld 1.12.2";
+    public static final String NAME        = "ServerMod";
     public static final String VERSION     = "1.0";
     public static final String SERVER_NAME = "UnnamedWorld 2";
 

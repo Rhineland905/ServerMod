@@ -1,7 +1,7 @@
-package com.example.manager;
+package com.unnamedworld.manager;
 
-import com.example.SampleMod112;
-import com.example.ability.Ability;
+import com.unnamedworld.ServerMod;
+import com.unnamedworld.ability.Ability;
 import com.google.gson.*;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
@@ -93,7 +93,7 @@ public class AbilityManager {
                 }
             }
         } catch (Exception e) {
-            SampleMod112.LOGGER.error("Failed to load abilities", e);
+            ServerMod.LOGGER.error("Failed to load abilities", e);
         }
     }
 
@@ -107,7 +107,7 @@ public class AbilityManager {
             }
             gson.toJson(obj, w);
         } catch (Exception e) {
-            SampleMod112.LOGGER.error("Failed to save abilities", e);
+            ServerMod.LOGGER.error("Failed to save abilities", e);
         }
     }
 

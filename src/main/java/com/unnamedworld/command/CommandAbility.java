@@ -1,7 +1,7 @@
-package com.example.command;
+package com.unnamedworld.command;
 
-import com.example.ability.Ability;
-import com.example.manager.AbilityManager;
+import com.unnamedworld.ability.Ability;
+import com.unnamedworld.manager.AbilityManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;

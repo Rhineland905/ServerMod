@@ -1,6 +1,6 @@
-package com.example.command;
+package com.unnamedworld.command;
 
-import com.example.manager.VanishManager;
+import com.unnamedworld.manager.VanishManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
