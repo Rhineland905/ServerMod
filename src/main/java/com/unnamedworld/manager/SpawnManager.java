@@ -21,7 +21,7 @@ public class SpawnManager {
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
     public void init(File configDir) {
-        saveFile = new File(configDir, "samplemod112_nospawn.json");
+        saveFile = new File(configDir, "nospawn.json");
         load();
     }
 

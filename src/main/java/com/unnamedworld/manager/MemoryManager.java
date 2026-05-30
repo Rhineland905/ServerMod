@@ -36,7 +36,7 @@ public class MemoryManager {
     private final Map<Long, List<EntityXPOrb>> xpMap   = new HashMap<>();
 
     public void init(File configDir) {
-        saveFile = new File(configDir, "samplemod112_memopt.json");
+        saveFile = new File(configDir, "memopt.json");
         load();
     }
 

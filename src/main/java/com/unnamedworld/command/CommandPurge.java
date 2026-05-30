@@ -13,9 +13,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.WorldServer;
-import net.minecraftforge.fml.common.registry.EntityEntry;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraft.entity.EntityList;
+import com.unnamedworld.manager.AIManager;
 import com.unnamedworld.manager.SpawnManager;
 
 import javax.annotation.Nullable;
@@ -58,7 +57,7 @@ public class CommandPurge extends CommandBase {
             return;
         }
 
-        String rawId = args[0].contains(":") ? args[0].toLowerCase() : "minecraft:" + args[0].toLowerCase();
+        String rawId = AIManager.normalize(args[0]);
         ResourceLocation targetKey = new ResourceLocation(rawId);
         boolean blockSpawn = args.length >= 2 && "block".equalsIgnoreCase(args[1]);
 
@@ -147,12 +146,7 @@ public class CommandPurge extends CommandBase {
     public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender,
                                           String[] args, @Nullable BlockPos pos) {
         if (args.length == 1) {
-            List<String> ids = new ArrayList<>();
-            for (EntityEntry entry : ForgeRegistries.ENTITIES.getValues()) {
-                ResourceLocation rl = entry.getRegistryName();
-                if (rl != null) ids.add(rl.toString());
-            }
-            return getListOfStringsMatchingLastWord(args, ids);
+            return getListOfStringsMatchingLastWord(args, AIManager.getAllEntityIds());
         }
         if (args.length == 2) {
             return getListOfStringsMatchingLastWord(args, "block");

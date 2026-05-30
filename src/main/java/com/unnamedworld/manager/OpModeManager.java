@@ -30,7 +30,7 @@ public class OpModeManager {
     private File saveDir;
 
     public void init(File configDir) {
-        saveDir = new File(configDir, "samplemod112_opmode");
+        saveDir = new File(configDir, "opmode");
         saveDir.mkdirs();
     }
 

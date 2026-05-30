@@ -1,6 +1,7 @@
 package com.unnamedworld;
 
 import com.unnamedworld.command.CommandAbility;
+import com.unnamedworld.command.CommandChunkLoad;
 import com.unnamedworld.command.CommandEndPortal;
 import com.unnamedworld.command.CommandUW;
 import com.unnamedworld.command.CommandLogin;
@@ -27,6 +28,8 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.File;
+
 @Mod(
     modid = ServerMod.MODID,
     name = ServerMod.NAME,
@@ -45,13 +48,16 @@ public class ServerMod {
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
-        AIManager.INSTANCE.init(event);
-        AbilityManager.INSTANCE.init(event.getModConfigurationDirectory());
-        AuthManager.INSTANCE.init(event.getModConfigurationDirectory());
-        SpawnManager.INSTANCE.init(event.getModConfigurationDirectory());
-        MemoryManager.INSTANCE.init(event.getModConfigurationDirectory());
-        OpModeManager.INSTANCE.init(event.getModConfigurationDirectory());
-        PortalManager.INSTANCE.init(event);
+        File configDir = new File(event.getModConfigurationDirectory(), MODID);
+        configDir.mkdirs();
+
+        AIManager.INSTANCE.init(configDir);
+        AbilityManager.INSTANCE.init(configDir);
+        AuthManager.INSTANCE.init(configDir);
+        SpawnManager.INSTANCE.init(configDir);
+        MemoryManager.INSTANCE.init(configDir);
+        OpModeManager.INSTANCE.init(configDir);
+        PortalManager.INSTANCE.init(configDir);
         TabListManager.INSTANCE.init();
 
         MinecraftForge.EVENT_BUS.register(TabListManager.INSTANCE);
@@ -64,6 +70,7 @@ public class ServerMod {
         MinecraftForge.EVENT_BUS.register(OpModeManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(PortalManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(VanishManager.INSTANCE);
+        MinecraftForge.EVENT_BUS.register(CommandChunkLoad.INSTANCE);
     }
 
     @Mod.EventHandler
@@ -79,6 +86,7 @@ public class ServerMod {
         event.registerServerCommand(new CommandEndPortal());
         event.registerServerCommand(new CommandVanish());
         event.registerServerCommand(new CommandOpMode());
+        event.registerServerCommand(CommandChunkLoad.INSTANCE);
         LOGGER.info("UnnamedWorld 2 server mod loaded.");
     }
 }

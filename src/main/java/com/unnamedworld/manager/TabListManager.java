@@ -23,11 +23,12 @@ public class TabListManager {
     private static final int UPDATE_INTERVAL = 20;
     private int tickCounter = 0;
 
-    private ITextComponent cachedHeader;
+    private String cachedHeaderJson;
 
     public void init() {
-        cachedHeader = new TextComponentString(
+        ITextComponent header = new TextComponentString(
                 TextFormatting.GOLD + "" + TextFormatting.BOLD + "[ " + ServerMod.SERVER_NAME + " ]");
+        cachedHeaderJson = ITextComponent.Serializer.componentToJson(header);
     }
 
     @SubscribeEvent
@@ -58,7 +59,7 @@ public class TabListManager {
             ITextComponent footer = new TextComponentString(
                     pingText + TextFormatting.DARK_GRAY + "  |  " + tpsText);
 
-            SPacketPlayerListHeaderFooter packet = buildPacket(cachedHeader, footer);
+            SPacketPlayerListHeaderFooter packet = buildPacket(cachedHeaderJson, footer);
             if (packet != null) player.connection.sendPacket(packet);
         }
     }
@@ -70,7 +71,7 @@ public class TabListManager {
         EntityPlayerMP player = (EntityPlayerMP) event.player;
         ITextComponent footer = new TextComponentString(
                 TextFormatting.GRAY + "Добро пожаловать на " + TextFormatting.GOLD + ServerMod.SERVER_NAME);
-        SPacketPlayerListHeaderFooter packet = buildPacket(cachedHeader, footer);
+        SPacketPlayerListHeaderFooter packet = buildPacket(cachedHeaderJson, footer);
         if (packet != null) player.connection.sendPacket(packet);
     }
 
@@ -81,10 +82,10 @@ public class TabListManager {
      * We serialise the two components into a PacketBuffer and let the packet
      * read itself back — same path the client uses when receiving from the network.
      */
-    private SPacketPlayerListHeaderFooter buildPacket(ITextComponent header, ITextComponent footer) {
+    private SPacketPlayerListHeaderFooter buildPacket(String headerJson, ITextComponent footer) {
         PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
         try {
-            buf.writeString(ITextComponent.Serializer.componentToJson(header));
+            buf.writeString(headerJson);
             buf.writeString(ITextComponent.Serializer.componentToJson(footer));
             SPacketPlayerListHeaderFooter packet = new SPacketPlayerListHeaderFooter();
             packet.readPacketData(buf);

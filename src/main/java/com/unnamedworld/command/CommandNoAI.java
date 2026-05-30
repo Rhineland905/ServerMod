@@ -7,14 +7,11 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.EntityList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.common.registry.EntityEntry;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -60,12 +57,7 @@ public class CommandNoAI extends CommandBase {
     public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender,
                                           String[] args, @Nullable BlockPos pos) {
         if (args.length == 1) {
-            List<String> ids = new ArrayList<>();
-            for (EntityEntry entry : ForgeRegistries.ENTITIES.getValues()) {
-                ResourceLocation rl = entry.getRegistryName();
-                if (rl != null) ids.add(rl.toString());
-            }
-            return getListOfStringsMatchingLastWord(args, ids);
+            return getListOfStringsMatchingLastWord(args, AIManager.getAllEntityIds());
         }
         if (args.length == 2) {
             return getListOfStringsMatchingLastWord(args, "on", "off");

@@ -16,6 +16,9 @@ import java.util.*;
 
 public class CommandAbility extends CommandBase {
 
+    private static final String[] ABILITY_IDS =
+            Arrays.stream(Ability.values()).map(a -> a.id).toArray(String[]::new);
+
     @Override
     public String getName() {
         return "ability";
@@ -125,8 +128,7 @@ public class CommandAbility extends CommandBase {
             return getListOfStringsMatchingLastWord(args, server.getOnlinePlayerNames());
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("give") || args[0].equalsIgnoreCase("remove"))) {
-            String[] ids = Arrays.stream(Ability.values()).map(a -> a.id).toArray(String[]::new);
-            return getListOfStringsMatchingLastWord(args, ids);
+            return getListOfStringsMatchingLastWord(args, ABILITY_IDS);
         }
         return Collections.emptyList();
     }

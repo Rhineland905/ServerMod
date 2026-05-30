@@ -20,6 +20,7 @@ import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -99,9 +100,11 @@ public class VanishManager {
         MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
         if (server == null) return;
 
-        for (UUID uid : new HashSet<>(vanished)) {
+        Iterator<UUID> it = vanished.iterator();
+        while (it.hasNext()) {
+            UUID uid = it.next();
             EntityPlayerMP vp = server.getPlayerList().getPlayerByUUID(uid);
-            if (vp == null) { vanished.remove(uid); continue; }
+            if (vp == null) { it.remove(); continue; }
             hideFromAll(vp, server);
         }
     }

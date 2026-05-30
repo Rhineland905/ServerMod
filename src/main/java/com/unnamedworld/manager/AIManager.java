@@ -9,8 +9,9 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.registry.EntityEntry;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 import java.io.*;
 import java.util.*;
@@ -24,8 +25,11 @@ public class AIManager {
     private File saveFile;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-    public void init(FMLPreInitializationEvent event) {
-        saveFile = new File(event.getModConfigurationDirectory(), "samplemod112_noai.json");
+    // Built once after FML registry is populated, reused by all tab-completion callers
+    private static List<String> entityIdCache;
+
+    public void init(File configDir) {
+        saveFile = new File(configDir, "noai.json");
         load();
     }
 
@@ -76,6 +80,18 @@ public class AIManager {
 
     public static String normalize(String id) {
         return id.contains(":") ? id.toLowerCase() : "minecraft:" + id.toLowerCase();
+    }
+
+    public static List<String> getAllEntityIds() {
+        if (entityIdCache == null) {
+            List<String> ids = new ArrayList<>();
+            for (EntityEntry entry : ForgeRegistries.ENTITIES.getValues()) {
+                ResourceLocation rl = entry.getRegistryName();
+                if (rl != null) ids.add(rl.toString());
+            }
+            entityIdCache = Collections.unmodifiableList(ids);
+        }
+        return entityIdCache;
     }
 
     private void applyToWorld(MinecraftServer server, ResourceLocation targetRL, boolean noAI) {

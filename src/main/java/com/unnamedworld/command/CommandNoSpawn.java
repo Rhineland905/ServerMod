@@ -1,5 +1,6 @@
 package com.unnamedworld.command;
 
+import com.unnamedworld.manager.AIManager;
 import com.unnamedworld.manager.SpawnManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -10,8 +11,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.fml.common.registry.EntityEntry;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -77,12 +76,8 @@ public class CommandNoSpawn extends CommandBase {
     public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender,
                                           String[] args, @Nullable BlockPos pos) {
         if (args.length == 1) {
-            List<String> ids = new ArrayList<>();
-            ids.add("list");
-            for (EntityEntry entry : ForgeRegistries.ENTITIES.getValues()) {
-                ResourceLocation rl = entry.getRegistryName();
-                if (rl != null) ids.add(rl.toString());
-            }
+            List<String> ids = new ArrayList<>(AIManager.getAllEntityIds());
+            ids.add(0, "list");
             return getListOfStringsMatchingLastWord(args, ids);
         }
         if (args.length == 2 && !"list".equalsIgnoreCase(args[0])) {

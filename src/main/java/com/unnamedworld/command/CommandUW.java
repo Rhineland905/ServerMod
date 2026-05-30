@@ -80,6 +80,8 @@ public class CommandUW extends CommandBase {
             msg(sender, TextFormatting.YELLOW, "/endportal <on|off>");
             msg(sender, TextFormatting.YELLOW, "/memopt <info|clean|gc|set <items|xp|interval> <n>>");
             msg(sender, TextFormatting.YELLOW, "/vanish [player]  " + TextFormatting.GRAY + "- скрыть игрока (алиас: /v)");
+            msg(sender, TextFormatting.YELLOW, "/chunkload [xzR [minY maxY] [dim]]  " + TextFormatting.GRAY + "- прогрузка (CC/vanilla)");
+            msg(sender, TextFormatting.YELLOW, "/chunkload stop|status              " + TextFormatting.GRAY + "- отмена / прогресс");
 
         }
 

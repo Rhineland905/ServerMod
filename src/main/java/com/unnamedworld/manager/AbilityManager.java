@@ -48,7 +48,7 @@ public class AbilityManager {
     private int golemTickCounter = 0;
 
     public void init(File configDir) {
-        saveFile = new File(configDir, "samplemod112_abilities.json");
+        saveFile = new File(configDir, "abilities.json");
         for (Ability a : Ability.values()) abilityMap.put(a, new HashSet<>());
         load();
     }

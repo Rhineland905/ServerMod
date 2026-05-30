@@ -10,7 +10,6 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
 import java.io.File;
 
@@ -24,9 +23,8 @@ public class PortalManager {
     private Configuration config;
     private boolean endDisabled = false;
 
-    public void init(FMLPreInitializationEvent event) {
-        config = new Configuration(new File(
-                event.getModConfigurationDirectory(), "samplemod112.cfg"));
+    public void init(File configDir) {
+        config = new Configuration(new File(configDir, "portals.cfg"));
         load();
     }
 

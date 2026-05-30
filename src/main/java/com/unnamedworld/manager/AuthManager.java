@@ -36,7 +36,7 @@ public class AuthManager {
     private int authTick = 0;
 
     public void init(File configDir) {
-        saveFile = new File(configDir, "samplemod112_auth.json");
+        saveFile = new File(configDir, "auth.json");
         load();
     }
 
