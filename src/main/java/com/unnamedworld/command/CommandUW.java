@@ -69,6 +69,9 @@ public class CommandUW extends CommandBase {
         msg(sender, TextFormatting.GOLD, "" + TextFormatting.BOLD + "=== UnnamedWorld Commands ===");
         msg(sender, TextFormatting.YELLOW, "/register <password>  " + TextFormatting.GRAY + "- create account");
         msg(sender, TextFormatting.YELLOW, "/login <password>     " + TextFormatting.GRAY + "- login");
+        msg(sender, TextFormatting.YELLOW, "/town pos1|pos2       " + TextFormatting.GRAY + "- выделить углы зоны");
+        msg(sender, TextFormatting.YELLOW, "/town region create <название>  " + TextFormatting.GRAY + "- свой регион (в городе)");
+        msg(sender, TextFormatting.YELLOW, "/town list|info <город>         " + TextFormatting.GRAY + "- города и регионы");
 
         if (isOp) {
             msg(sender, TextFormatting.AQUA, "" + TextFormatting.BOLD + "--- Ops only ---");
@@ -82,7 +85,8 @@ public class CommandUW extends CommandBase {
             msg(sender, TextFormatting.YELLOW, "/vanish [player]  " + TextFormatting.GRAY + "- скрыть игрока (алиас: /v)");
             msg(sender, TextFormatting.YELLOW, "/chunkload [xzR [minY maxY] [dim]]  " + TextFormatting.GRAY + "- прогрузка (CC/vanilla)");
             msg(sender, TextFormatting.YELLOW, "/chunkload stop|status              " + TextFormatting.GRAY + "- отмена / прогресс");
-
+            msg(sender, TextFormatting.YELLOW, "/town create|delete <название>      " + TextFormatting.GRAY + "- города (только админ)");
+            msg(sender, TextFormatting.YELLOW, "/town region owner <город> <регион> <игрок>");
         }
 
         msg(sender, TextFormatting.DARK_GRAY,

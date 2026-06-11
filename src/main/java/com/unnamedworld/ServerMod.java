@@ -11,6 +11,9 @@ import com.unnamedworld.command.CommandNoSpawn;
 import com.unnamedworld.command.CommandPurge;
 import com.unnamedworld.command.CommandRegister;
 import com.unnamedworld.command.CommandOpMode;
+import com.unnamedworld.command.CommandReport;
+import com.unnamedworld.command.CommandReports;
+import com.unnamedworld.command.CommandTown;
 import com.unnamedworld.command.CommandVanish;
 import com.unnamedworld.manager.AIManager;
 import com.unnamedworld.manager.AbilityManager;
@@ -20,6 +23,8 @@ import com.unnamedworld.manager.MemoryManager;
 import com.unnamedworld.manager.OpModeManager;
 import com.unnamedworld.manager.PortalManager;
 import com.unnamedworld.manager.TabListManager;
+import com.unnamedworld.manager.ReportManager;
+import com.unnamedworld.manager.TownManager;
 import com.unnamedworld.manager.VanishManager;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -58,6 +63,8 @@ public class ServerMod {
         MemoryManager.INSTANCE.init(configDir);
         OpModeManager.INSTANCE.init(configDir);
         PortalManager.INSTANCE.init(configDir);
+        ReportManager.INSTANCE.init(configDir);
+        TownManager.INSTANCE.init(configDir);
         TabListManager.INSTANCE.init();
 
         MinecraftForge.EVENT_BUS.register(TabListManager.INSTANCE);
@@ -70,6 +77,7 @@ public class ServerMod {
         MinecraftForge.EVENT_BUS.register(OpModeManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(PortalManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(VanishManager.INSTANCE);
+        MinecraftForge.EVENT_BUS.register(TownManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(CommandChunkLoad.INSTANCE);
     }
 
@@ -86,6 +94,9 @@ public class ServerMod {
         event.registerServerCommand(new CommandEndPortal());
         event.registerServerCommand(new CommandVanish());
         event.registerServerCommand(new CommandOpMode());
+        event.registerServerCommand(new CommandReport());
+        event.registerServerCommand(new CommandReports());
+        event.registerServerCommand(new CommandTown());
         event.registerServerCommand(CommandChunkLoad.INSTANCE);
         LOGGER.info("UnnamedWorld 2 server mod loaded.");
     }

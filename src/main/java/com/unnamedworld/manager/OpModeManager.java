@@ -8,6 +8,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.GameType;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommand;
 import net.minecraftforge.event.CommandEvent;
@@ -65,6 +66,13 @@ public class OpModeManager {
         loadInventory(uuid, "player", player);
         opModeActive.remove(uuid);
         player.sendContainerToPlayer(player.inventoryContainer); // full client sync
+        player.setGameType(GameType.SURVIVAL);
+
+        MinecraftServer server = player.getServer();
+        if (server != null && VanishManager.INSTANCE.isVanished(uuid)) {
+            VanishManager.INSTANCE.unvanish(player, server);
+        }
+
         player.sendMessage(new TextComponentString(
                 TextFormatting.YELLOW + "[Player] Режим игрока активирован. ОП-команды недоступны."));
     }
@@ -123,14 +131,22 @@ public class OpModeManager {
                 TextFormatting.RED + "Ты в режиме игрока. Используй /opmode чтобы переключиться."));
     }
 
-    // Save the active inventory and clean up state when the player leaves
+    // Save the active inventory and clean up state when the player leaves.
+    // PlayerLoggedOutEvent fires BEFORE writePlayerData(), so if the player was
+    // in OP mode we restore their player inventory + survival mode here so that
+    // is what gets persisted to disk, not the OP loadout.
     @SubscribeEvent
     public void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (!(event.player instanceof EntityPlayerMP)) return;
         UUID uuid = event.player.getUniqueID();
         EntityPlayerMP player = (EntityPlayerMP) event.player;
-        // Save whichever inventory is currently equipped
-        saveInventory(uuid, opModeActive.contains(uuid) ? "op" : "player", player);
-        opModeActive.remove(uuid);
+
+        if (opModeActive.remove(uuid)) {
+            saveInventory(uuid, "op", player);
+            loadInventory(uuid, "player", player);
+            player.interactionManager.setGameType(GameType.SURVIVAL);
+        } else {
+            saveInventory(uuid, "player", player);
+        }
     }
 }
