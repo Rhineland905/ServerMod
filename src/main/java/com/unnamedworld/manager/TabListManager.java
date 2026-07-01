@@ -25,9 +25,23 @@ public class TabListManager {
 
     private String cachedHeaderJson;
 
+    // Логотип в табе рисуется КАК КАРТИНКА через шрифт-ресурспак UnnamedWorld:
+    // хедер — это сетка PUA-символов U+E000.., которым ресурспак сопоставил плитки
+    // лого (страница textures/font/unicode_page_e0.png + правленый glyph_sizes.bin).
+    // Сетка 32×8 = 256 плиток. Без этого ресурспака клиент символы не отрисует.
+    private static final int LOGO_COLS = 32;
+    private static final int LOGO_ROWS = 8;
+    private static final int LOGO_PUA_START = 0xE000;
+
     public void init() {
-        ITextComponent header = new TextComponentString(
-                TextFormatting.GOLD + "" + TextFormatting.BOLD + "[ " + ServerMod.SERVER_NAME + " ]");
+        StringBuilder sb = new StringBuilder();
+        for (int row = 0; row < LOGO_ROWS; row++) {
+            if (row > 0) sb.append('\n');
+            for (int col = 0; col < LOGO_COLS; col++) {
+                sb.append((char) (LOGO_PUA_START + row * LOGO_COLS + col));
+            }
+        }
+        ITextComponent header = new TextComponentString(sb.toString());
         cachedHeaderJson = ITextComponent.Serializer.componentToJson(header);
     }
 
@@ -40,6 +54,9 @@ public class TabListManager {
         MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
         if (server == null) return;
 
+        List<EntityPlayerMP> players = server.getPlayerList().getPlayers();
+        if (players.isEmpty()) return; // никого онлайн — не считаем TPS и не строим пакеты
+
         double tps = calculateTPS(server);
         TextFormatting tpsColor = tps >= 18.0 ? TextFormatting.GREEN
                                 : tps >= 15.0 ? TextFormatting.YELLOW
@@ -47,20 +64,27 @@ public class TabListManager {
         String tpsText = TextFormatting.GRAY + "TPS: " + tpsColor + String.format("%.1f", tps)
                 + TextFormatting.DARK_GRAY + " / 20.0";
 
-        List<EntityPlayerMP> players = server.getPlayerList().getPlayers();
-        for (int i = 0; i < players.size(); i++) {
-            EntityPlayerMP player = players.get(i);
-            int ping = player.ping;
-            TextFormatting pingColor = ping < 80  ? TextFormatting.GREEN
-                                     : ping < 200 ? TextFormatting.YELLOW
-                                     : TextFormatting.RED;
-            String pingText = TextFormatting.GRAY + "Ping: " + pingColor + ping + TextFormatting.GRAY + " ms";
+        // Один переиспользуемый буфер на весь проход. Раньше на каждого игрока каждую
+        // секунду выделялся и освобождался отдельный Netty-буфер, в который заново
+        // кодировался один и тот же большой header-лого — лишний мусор для GC.
+        PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
+        try {
+            for (int i = 0; i < players.size(); i++) {
+                EntityPlayerMP player = players.get(i);
+                int ping = player.ping;
+                TextFormatting pingColor = ping < 80  ? TextFormatting.GREEN
+                                         : ping < 200 ? TextFormatting.YELLOW
+                                         : TextFormatting.RED;
+                String pingText = TextFormatting.GRAY + "Ping: " + pingColor + ping + TextFormatting.GRAY + " ms";
 
-            ITextComponent footer = new TextComponentString(
-                    pingText + TextFormatting.DARK_GRAY + "  |  " + tpsText);
+                ITextComponent footer = new TextComponentString(
+                        pingText + TextFormatting.DARK_GRAY + "  |  " + tpsText);
 
-            SPacketPlayerListHeaderFooter packet = buildPacket(cachedHeaderJson, footer);
-            if (packet != null) player.connection.sendPacket(packet);
+                SPacketPlayerListHeaderFooter packet = buildPacket(buf, cachedHeaderJson, footer);
+                if (packet != null) player.connection.sendPacket(packet);
+            }
+        } finally {
+            buf.release();
         }
     }
 
@@ -77,13 +101,24 @@ public class TabListManager {
 
     // --- Helpers ---
 
+    // Одиночный вызов (вход игрока): свой буфер, освобождаем здесь же.
+    private SPacketPlayerListHeaderFooter buildPacket(String headerJson, ITextComponent footer) {
+        PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
+        try {
+            return buildPacket(buf, headerJson, footer);
+        } finally {
+            buf.release();
+        }
+    }
+
     /**
-     * Builds SPacketPlayerListHeaderFooter without reflection.
+     * Builds SPacketPlayerListHeaderFooter without reflection, переиспользуя переданный
+     * буфер (clear() перед записью — владелец буфера освобождает его сам).
      * We serialise the two components into a PacketBuffer and let the packet
      * read itself back — same path the client uses when receiving from the network.
      */
-    private SPacketPlayerListHeaderFooter buildPacket(String headerJson, ITextComponent footer) {
-        PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
+    private SPacketPlayerListHeaderFooter buildPacket(PacketBuffer buf, String headerJson, ITextComponent footer) {
+        buf.clear();
         try {
             buf.writeString(headerJson);
             buf.writeString(ITextComponent.Serializer.componentToJson(footer));
@@ -93,8 +128,6 @@ public class TabListManager {
         } catch (Exception e) {
             ServerMod.LOGGER.error("TabListManager: failed to build header/footer packet", e);
             return null;
-        } finally {
-            buf.release();
         }
     }
 

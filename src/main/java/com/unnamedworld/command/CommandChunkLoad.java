@@ -88,6 +88,7 @@ public class CommandChunkLoad extends CommandBase {
     private ICommandSender initiator        = null;
     private WorldServer    targetWorld      = null;
     private int            ticksSinceReport = 0;
+    private int            cooldownTicks    = 0;
 
     @Override public String getName() { return "chunkload"; }
     @Override public int getRequiredPermissionLevel() { return 2; }
@@ -218,6 +219,7 @@ public class CommandChunkLoad extends CommandBase {
         targetWorld      = world;
         cubicMode        = cc;
         ticksSinceReport = 0;
+        cooldownTicks    = 0;
         running          = true;
 
         int side = 2 * xzRadius + 1;
@@ -238,6 +240,19 @@ public class CommandChunkLoad extends CommandBase {
     public void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END || !running) return;
 
+        ticksSinceReport++;
+
+        // Пауза после тяжёлого чанка: даём серверу догнать пропущенные тики,
+        // обработать пакеты игроков и voicechat, иначе "Can't keep up" и таймауты
+        if (cooldownTicks > 0) {
+            cooldownTicks--;
+            if (ticksSinceReport >= REPORT_INTERVAL) {
+                ticksSinceReport = 0;
+                sendProgress();
+            }
+            return;
+        }
+
         long tickStart = System.nanoTime();
         for (int i = 0; i < chunksPerTick && !pending.isEmpty(); i++) {
             int[] c = pending.remove(pending.size() - 1);
@@ -251,7 +266,13 @@ public class CommandChunkLoad extends CommandBase {
             if (System.nanoTime() - tickStart > TICK_BUDGET_NS) break;
         }
 
-        ticksSinceReport++;
+        // Генерацию одного чанка прервать нельзя — если она заняла дольше
+        // 100 мс, делаем паузу вдвое длиннее потраченного времени (до 20 сек)
+        long spentMs = (System.nanoTime() - tickStart) / 1_000_000L;
+        if (spentMs > 100) {
+            cooldownTicks = (int) Math.min(spentMs * 2 / 50, 400);
+        }
+
         boolean finished = pending.isEmpty();
 
         if (finished || ticksSinceReport >= REPORT_INTERVAL) {
@@ -285,6 +306,10 @@ public class CommandChunkLoad extends CommandBase {
         if (loadedCount > 0 && loadedCount < total) {
             int etaSec = (int) ((total - loadedCount) / (loadedCount / elapsedSec));
             sb.append(TextFormatting.AQUA).append("  ~").append(formatTime(etaSec));
+            if (cooldownTicks > 0) {
+                sb.append(TextFormatting.GRAY).append(" | пауза ")
+                  .append(cooldownTicks / 20 + 1).append("с (сервер догоняет)");
+            }
         } else if (loadedCount >= total) {
             sb.append(TextFormatting.GREEN)
               .append("  Готово за ")

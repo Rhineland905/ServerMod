@@ -10,9 +10,7 @@ import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.BossInfo;
 import net.minecraft.world.BossInfoServer;
-import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
@@ -27,19 +25,15 @@ public class TownManager {
 
     // ── Data classes ──────────────────────────────────────────────────────────
 
+    // Регион — просто именованная зона внутри города, без владельца и привата
     public static class Region {
         public final String name;
         public final int x1, z1, x2, z2; // нормализованы: x1<=x2, z1<=z2
-        public String ownerUUID; // null = админский регион (строить могут только ОПы)
-        public String ownerName;
 
-        Region(String name, int x1, int z1, int x2, int z2,
-               @Nullable String ownerUUID, @Nullable String ownerName) {
+        Region(String name, int x1, int z1, int x2, int z2) {
             this.name = name;
             this.x1 = Math.min(x1, x2); this.x2 = Math.max(x1, x2);
             this.z1 = Math.min(z1, z2); this.z2 = Math.max(z1, z2);
-            this.ownerUUID = ownerUUID;
-            this.ownerName = ownerName;
         }
 
         public boolean contains(int x, int z) {
@@ -54,10 +48,12 @@ public class TownManager {
     public static class Town {
         public final String name;
         public final int dim;
-        public final int x1, z1, x2, z2; // нормализованы
+        public final int x1, z1, x2, z2; // bounding box (нормализованы)
+        public final List<int[]> points = new ArrayList<>(); // вершины полигона {x,z}; пусто = обычный прямоугольник
         public final List<Region> regions = new ArrayList<>();
         public final Map<String, String> members = new LinkedHashMap<>(); // uuid -> имя
 
+        // Прямоугольный город (2 угла / старый формат)
         Town(String name, int dim, int x1, int z1, int x2, int z2) {
             this.name = name;
             this.dim = dim;
@@ -65,12 +61,42 @@ public class TownManager {
             this.z1 = Math.min(z1, z2); this.z2 = Math.max(z1, z2);
         }
 
+        // Полигональный город: границы задаются списком точек (>=3), bbox считается по ним
+        Town(String name, int dim, List<int[]> pts) {
+            this.name = name;
+            this.dim = dim;
+            int minX = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+            int maxX = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+            for (int[] p : pts) {
+                points.add(new int[]{ p[0], p[1] });
+                minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]);
+                minZ = Math.min(minZ, p[1]); maxZ = Math.max(maxZ, p[1]);
+            }
+            this.x1 = minX; this.z1 = minZ; this.x2 = maxX; this.z2 = maxZ;
+        }
+
         public boolean contains(int x, int z) {
-            return x >= x1 && x <= x2 && z >= z1 && z <= z2;
+            if (x < x1 || x > x2 || z < z1 || z > z2) return false; // быстрый отсев по bbox
+            if (points.size() < 3) return true;                     // прямоугольник = bbox
+            return pointInPolygon(x, z);
+        }
+
+        // Ray casting: нечётное число пересечений луча вправо = точка внутри
+        private boolean pointInPolygon(int x, int z) {
+            boolean inside = false;
+            int n = points.size();
+            for (int i = 0, j = n - 1; i < n; j = i++) {
+                int xi = points.get(i)[0], zi = points.get(i)[1];
+                int xj = points.get(j)[0], zj = points.get(j)[1];
+                boolean cross = ((zi > z) != (zj > z))
+                        && (x < (double) (xj - xi) * (z - zi) / (double) (zj - zi) + xi);
+                if (cross) inside = !inside;
+            }
+            return inside;
         }
 
         public boolean intersects(int ax1, int az1, int ax2, int az2) {
-            return ax1 <= x2 && ax2 >= x1 && az1 <= z2 && az2 >= z1;
+            return ax1 <= x2 && ax2 >= x1 && az1 <= z2 && az2 >= z1; // по bbox
         }
 
         @Nullable
@@ -101,6 +127,9 @@ public class TownManager {
     // Выделение точек pos1/pos2 командой /town; UUID -> {x, z, dim}
     private final Map<UUID, int[]> pos1 = new HashMap<>();
     private final Map<UUID, int[]> pos2 = new HashMap<>();
+
+    // Полигональная разметка: UUID -> список вершин {x, z, dim}
+    private final Map<UUID, List<int[]>> polyPoints = new HashMap<>();
 
     // Где игрок находится сейчас (для титулов входа/выхода)
     private final Map<UUID, String> currentTown   = new HashMap<>();
@@ -164,6 +193,14 @@ public class TownManager {
         return town;
     }
 
+    /** Создать город-полигон по списку вершин {x,z} (>=3). */
+    public Town createTownPoly(String name, int dim, List<int[]> pts) {
+        Town town = new Town(name, dim, pts);
+        towns.add(town);
+        save();
+        return town;
+    }
+
     public boolean deleteTown(String name) {
         Iterator<Town> it = towns.iterator();
         while (it.hasNext()) {
@@ -178,9 +215,8 @@ public class TownManager {
 
     // ── Public API: regions ───────────────────────────────────────────────────
 
-    public Region createRegion(Town town, String name, int x1, int z1, int x2, int z2,
-                               @Nullable String ownerUUID, @Nullable String ownerName) {
-        Region region = new Region(name, x1, z1, x2, z2, ownerUUID, ownerName);
+    public Region createRegion(Town town, String name, int x1, int z1, int x2, int z2) {
+        Region region = new Region(name, x1, z1, x2, z2);
         town.regions.add(region);
         save();
         return region;
@@ -196,12 +232,6 @@ public class TownManager {
             }
         }
         return false;
-    }
-
-    public void setRegionOwner(Region region, String ownerUUID, String ownerName) {
-        region.ownerUUID = ownerUUID;
-        region.ownerName = ownerName;
-        save();
     }
 
     // ── Public API: members ───────────────────────────────────────────────────
@@ -229,6 +259,30 @@ public class TownManager {
     public void clearSelection(UUID uuid) {
         pos1.remove(uuid);
         pos2.remove(uuid);
+    }
+
+    // ── Public API: полигональная разметка ────────────────────────────────────
+
+    public void addPolyPoint(UUID uuid, int x, int z, int dim) {
+        polyPoints.computeIfAbsent(uuid, k -> new ArrayList<>()).add(new int[]{ x, z, dim });
+    }
+
+    public List<int[]> getPolyPoints(UUID uuid) {
+        List<int[]> l = polyPoints.get(uuid);
+        return l == null ? Collections.emptyList() : Collections.unmodifiableList(l);
+    }
+
+    @Nullable
+    public int[] undoPolyPoint(UUID uuid) {
+        List<int[]> l = polyPoints.get(uuid);
+        if (l == null || l.isEmpty()) return null;
+        int[] removed = l.remove(l.size() - 1);
+        if (l.isEmpty()) polyPoints.remove(uuid);
+        return removed;
+    }
+
+    public void clearPolyPoints(UUID uuid) {
+        polyPoints.remove(uuid);
     }
 
     // ── Events: вход/выход из зон (титулы) ───────────────────────────────────
@@ -271,12 +325,9 @@ public class TownManager {
 
             if (!Objects.equals(regionKey, prevRegion)) {
                 if (region != null) {
-                    String owner = region.ownerName == null
-                            ? "" : TextFormatting.GRAY + " • владелец: "
-                                 + TextFormatting.WHITE + region.ownerName;
                     sendActionBar(player,
                             TextFormatting.AQUA + "Регион: "
-                          + TextFormatting.WHITE + region.name + owner);
+                          + TextFormatting.WHITE + region.name);
                 } else if (prevRegion != null) {
                     int slash = prevRegion.indexOf('/');
                     sendActionBar(player, TextFormatting.GRAY
@@ -297,6 +348,7 @@ public class TownManager {
         currentRegion.remove(uuid);
         pos1.remove(uuid);
         pos2.remove(uuid);
+        polyPoints.remove(uuid);
         BossInfoServer bar = bars.remove(uuid);
         if (bar != null && event.player instanceof EntityPlayerMP) {
             bar.removePlayer((EntityPlayerMP) event.player);
@@ -337,45 +389,6 @@ public class TownManager {
         }
     }
 
-    // ── Events: защита регионов ──────────────────────────────────────────────
-
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public void onBlockBreak(BlockEvent.BreakEvent event) {
-        if (!(event.getPlayer() instanceof EntityPlayerMP)) return;
-        EntityPlayerMP player = (EntityPlayerMP) event.getPlayer();
-        Region region = denyRegion(player, event.getWorld().provider.getDimension(),
-                event.getPos().getX(), event.getPos().getZ());
-        if (region != null) {
-            event.setCanceled(true);
-            sendActionBar(player, TextFormatting.RED + "Это чужой регион: " + region.name);
-        }
-    }
-
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public void onBlockPlace(BlockEvent.PlaceEvent event) {
-        if (!(event.getPlayer() instanceof EntityPlayerMP)) return;
-        EntityPlayerMP player = (EntityPlayerMP) event.getPlayer();
-        Region region = denyRegion(player, event.getWorld().provider.getDimension(),
-                event.getPos().getX(), event.getPos().getZ());
-        if (region != null) {
-            event.setCanceled(true);
-            sendActionBar(player, TextFormatting.RED + "Это чужой регион: " + region.name);
-        }
-    }
-
-    /** Возвращает регион, запрещающий игроку строить в этой точке, или null если можно. */
-    @Nullable
-    private Region denyRegion(EntityPlayerMP player, int dim, int x, int z) {
-        Town town = getTownAt(dim, x, z);
-        if (town == null) return null;
-        Region region = town.getRegionAt(x, z);
-        if (region == null) return null;
-        if (player.canUseCommand(2, "town")) return null; // ОПы строят везде
-        if (region.ownerUUID != null
-                && region.ownerUUID.equals(player.getUniqueID().toString())) return null;
-        return region;
-    }
-
     // ── Titles ────────────────────────────────────────────────────────────────
 
     private void sendActionBar(EntityPlayerMP player, String text) {
@@ -392,22 +405,28 @@ public class TownManager {
             if (obj == null || !obj.has("towns")) return;
             for (JsonElement elem : obj.getAsJsonArray("towns")) {
                 JsonObject to = elem.getAsJsonObject();
-                Town town = new Town(
-                        to.get("name").getAsString(),
-                        to.get("dim").getAsInt(),
-                        to.get("x1").getAsInt(), to.get("z1").getAsInt(),
-                        to.get("x2").getAsInt(), to.get("z2").getAsInt());
+                String tname = to.get("name").getAsString();
+                int tdim = to.get("dim").getAsInt();
+                Town town;
+                if (to.has("points")) {
+                    List<int[]> pts = new ArrayList<>();
+                    for (JsonElement pe : to.getAsJsonArray("points")) {
+                        JsonArray pa = pe.getAsJsonArray();
+                        pts.add(new int[]{ pa.get(0).getAsInt(), pa.get(1).getAsInt() });
+                    }
+                    town = new Town(tname, tdim, pts);
+                } else {
+                    town = new Town(tname, tdim,
+                            to.get("x1").getAsInt(), to.get("z1").getAsInt(),
+                            to.get("x2").getAsInt(), to.get("z2").getAsInt());
+                }
                 if (to.has("regions")) {
                     for (JsonElement re : to.getAsJsonArray("regions")) {
                         JsonObject ro = re.getAsJsonObject();
                         town.regions.add(new Region(
                                 ro.get("name").getAsString(),
                                 ro.get("x1").getAsInt(), ro.get("z1").getAsInt(),
-                                ro.get("x2").getAsInt(), ro.get("z2").getAsInt(),
-                                ro.has("ownerUUID") && !ro.get("ownerUUID").isJsonNull()
-                                        ? ro.get("ownerUUID").getAsString() : null,
-                                ro.has("ownerName") && !ro.get("ownerName").isJsonNull()
-                                        ? ro.get("ownerName").getAsString() : null));
+                                ro.get("x2").getAsInt(), ro.get("z2").getAsInt()));
                     }
                 }
                 if (to.has("members")) {
@@ -433,14 +452,21 @@ public class TownManager {
                 to.addProperty("dim",  t.dim);
                 to.addProperty("x1", t.x1); to.addProperty("z1", t.z1);
                 to.addProperty("x2", t.x2); to.addProperty("z2", t.z2);
+                if (!t.points.isEmpty()) {
+                    JsonArray pts = new JsonArray();
+                    for (int[] p : t.points) {
+                        JsonArray pa = new JsonArray();
+                        pa.add(p[0]); pa.add(p[1]);
+                        pts.add(pa);
+                    }
+                    to.add("points", pts);
+                }
                 JsonArray regs = new JsonArray();
                 for (Region r : t.regions) {
                     JsonObject ro = new JsonObject();
                     ro.addProperty("name", r.name);
                     ro.addProperty("x1", r.x1); ro.addProperty("z1", r.z1);
                     ro.addProperty("x2", r.x2); ro.addProperty("z2", r.z2);
-                    ro.addProperty("ownerUUID", r.ownerUUID);
-                    ro.addProperty("ownerName", r.ownerName);
                     regs.add(ro);
                 }
                 to.add("regions", regs);

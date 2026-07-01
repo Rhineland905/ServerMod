@@ -27,6 +27,11 @@ repositories {
 
 dependencies {
 	minecraft "net.minecraftforge:forge:1.12.2-14.23.5.2860"
+
+	// Simple Voice Chat plugin API — только для компиляции.
+	// Эти классы уже есть внутри мода voicechat на сервере, поэтому compileOnly
+	// (не пакуем в наш jar). Если мода voicechat нет — наш плагин просто не грузится.
+	compileOnly files("libs/voicechat-api-2.6.18.jar")
 }
 
 minecraft {

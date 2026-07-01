@@ -32,6 +32,13 @@ public class VanishManager {
     private final Set<UUID> vanished = new HashSet<>();
     private int hideTick = 0;
 
+    // Длительность зелья невидимости у ваниша — почти вечная.
+    private static final int VANISH_INVIS_DURATION = Integer.MAX_VALUE;
+    // По такой длительности на входе опознаём «залипшее» зелье ваниша (после
+    // рестарта/перезахода трекинг ваниша теряется, а зелье остаётся в NBT).
+    // Обычные зелья невидимости куда короче (~3–8 мин).
+    private static final int VANISH_MARKER_TICKS = 1_000_000; // ~13.8 ч
+
     public boolean isVanished(UUID uuid) {
         return vanished.contains(uuid);
     }
@@ -45,7 +52,7 @@ public class VanishManager {
 
         // Amplitude 1 also hides armor and held items
         player.addPotionEffect(
-                new PotionEffect(MobEffects.INVISIBILITY, Integer.MAX_VALUE, 1, false, false));
+                new PotionEffect(MobEffects.INVISIBILITY, VANISH_INVIS_DURATION, 1, false, false));
 
         hideFromAll(player, server);
 
@@ -111,9 +118,11 @@ public class VanishManager {
 
     // --- Events ---
 
-    // When a new player joins:
-    // 1. Hide existing vanished players from them
-    // 2. Auto-vanish the new player if they are OP (level >= 2) — broadcasts fake leave
+    // При входе игрока:
+    // 1. Снимаем «залипшую» невидимость от ваниша (трекинг ваниша не сохраняется
+    //    и теряется при рестарте/перезаходе, а зелье — нет; иначе игрок остался бы
+    //    невидимым для всех навсегда).
+    // 2. Прячем уже-сванишенных игроков от зашедшего.
     @SubscribeEvent
     public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.player instanceof EntityPlayerMP)) return;
@@ -123,6 +132,18 @@ public class VanishManager {
         MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
         if (server == null) return;
 
+        // (1) Снять остаточное «вечное» зелье невидимости, если игрок сейчас НЕ в ванише.
+        // Делаем это ДО early-return ниже: после рестарта vanished пуст, иначе очистка
+        // не выполнилась бы. На свежем заходе ваниль уже вернула игрока в таб и заспавнила
+        // его сущность — достаточно снять зелье, чтобы он снова стал видимым.
+        if (!vanished.contains(newUuid)) {
+            PotionEffect inv = newPlayer.getActivePotionEffect(MobEffects.INVISIBILITY);
+            if (inv != null && inv.getDuration() > VANISH_MARKER_TICKS) {
+                newPlayer.removePotionEffect(MobEffects.INVISIBILITY);
+            }
+        }
+
+        // (2) Спрятать уже-сванишенных игроков от зашедшего.
         // Snapshot before the task so we don't race with other modifications
         if (vanished.isEmpty()) return;
         Set<UUID> snapshot = new HashSet<>(vanished);

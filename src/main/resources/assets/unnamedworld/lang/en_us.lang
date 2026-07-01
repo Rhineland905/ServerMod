@@ -17,7 +17,7 @@ ability.warden.name=Warden
 ability.warden.desc=Burns in sunlight; mobs ignore you, but iron and snow golems always attack.
 
 ability.demon.name=Demon
-ability.demon.desc=Immune to fire damage; takes damage in water; moves faster in lava.
+ability.demon.desc=Immune to fire and lava; dies in water and rain; can fly, but flight is very hunger-hungry.
 
 ability.fish.name=Fish
 ability.fish.desc=Burns in sunlight out of water/rain; never drowns; in water/rain: Night Vision.

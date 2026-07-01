@@ -69,24 +69,42 @@ public class CommandUW extends CommandBase {
         msg(sender, TextFormatting.GOLD, "" + TextFormatting.BOLD + "=== UnnamedWorld Commands ===");
         msg(sender, TextFormatting.YELLOW, "/register <password>  " + TextFormatting.GRAY + "- create account");
         msg(sender, TextFormatting.YELLOW, "/login <password>     " + TextFormatting.GRAY + "- login");
+        msg(sender, TextFormatting.YELLOW, "/report <текст>       " + TextFormatting.GRAY + "- сообщить админам о баге");
         msg(sender, TextFormatting.YELLOW, "/town pos1|pos2       " + TextFormatting.GRAY + "- выделить углы зоны");
         msg(sender, TextFormatting.YELLOW, "/town region create <название>  " + TextFormatting.GRAY + "- свой регион (в городе)");
         msg(sender, TextFormatting.YELLOW, "/town list|info <город>         " + TextFormatting.GRAY + "- города и регионы");
 
         if (isOp) {
-            msg(sender, TextFormatting.AQUA, "" + TextFormatting.BOLD + "--- Ops only ---");
-            msg(sender, TextFormatting.YELLOW, "/ability give|remove <player> <warden|demon|fish>");
-            msg(sender, TextFormatting.YELLOW, "/ability list [player]");
-            msg(sender, TextFormatting.YELLOW, "/noai <entity_id> <on|off>");
-            msg(sender, TextFormatting.YELLOW, "/nospawn <entity_id> <on|off>  |  /nospawn list");
-            msg(sender, TextFormatting.YELLOW, "/purge <entity_id> [block]");
+            msg(sender, TextFormatting.AQUA, "" + TextFormatting.BOLD + "--- Только для операторов ---");
+
+            msg(sender, TextFormatting.DARK_AQUA, "" + TextFormatting.BOLD + "• Модерация:");
+            msg(sender, TextFormatting.YELLOW, "/mute <ник> [время] [причина]    " + TextFormatting.GRAY + "- мут чата и войса (время: 30m/2h/1d/perm)");
+            msg(sender, TextFormatting.YELLOW, "/unmute <ник>  |  /mutelist       " + TextFormatting.GRAY + "- снять мут / список мутов");
+            msg(sender, TextFormatting.YELLOW, "/tempban <ник> <время> [причина] " + TextFormatting.GRAY + "- временный бан (алиас /tban; снять: /pardon)");
+            msg(sender, TextFormatting.YELLOW, "/vanish [игрок]                  " + TextFormatting.GRAY + "- скрыть игрока (алиас /v)");
+            msg(sender, TextFormatting.YELLOW, "/uwwhitelist <on|off|add|remove|list|status>  " + TextFormatting.GRAY + "- вайтлист (алиас /uwwl)");
+            msg(sender, TextFormatting.YELLOW, "/opmode  " + TextFormatting.GRAY + "- режим ОПа/игрока (своя инвентарка)");
+
+            msg(sender, TextFormatting.DARK_AQUA, "" + TextFormatting.BOLD + "• Способности и косметика:");
+            msg(sender, TextFormatting.YELLOW, "/ability give|remove <игрок> <warden|demon|fish|blaze|void|assassin>");
+            msg(sender, TextFormatting.YELLOW, "/ability list [игрок]");
+            msg(sender, TextFormatting.YELLOW, "/size [игрок] <число|reset>   " + TextFormatting.GRAY + "- размер модели");
+            msg(sender, TextFormatting.YELLOW, "/hp [игрок] <HP|reset>        " + TextFormatting.GRAY + "- макс. здоровье");
+            msg(sender, TextFormatting.YELLOW, "/loreitem give|remove|list <игрок> <cape|horns|propeller|catears>");
+
+            msg(sender, TextFormatting.DARK_AQUA, "" + TextFormatting.BOLD + "• Мир и производительность:");
+            msg(sender, TextFormatting.YELLOW, "/memopt <info|clean|gc|set <items|xp|interval|delay> <n>>  " + TextFormatting.GRAY + "- чистка дропа по таймеру");
+            msg(sender, TextFormatting.YELLOW, "/entities [<dim>|top [N]|here [радиус]]  " + TextFormatting.GRAY + "- что наспавнено (алиас /ents)");
+            msg(sender, TextFormatting.YELLOW, "/pregen <half>|auto <half>|at <x> <z> <half>|stop|resume|status  " + TextFormatting.GRAY + "- пре-ген");
+            msg(sender, TextFormatting.YELLOW, "/orethin <радиус>|area <half>|auto <half> [%] [maxY minY] [блок] [замена]  " + TextFormatting.GRAY + "- прореживание руды");
+            msg(sender, TextFormatting.YELLOW, "/uwflowers <status|on|off|seed [радиус]>  " + TextFormatting.GRAY + "- цветы Botania");
+            msg(sender, TextFormatting.YELLOW, "/chunkload [xzR [minY maxY] [dim]] | stop | status  " + TextFormatting.GRAY + "- прогрузка");
+            msg(sender, TextFormatting.YELLOW, "/nospawn <id> <on|off>|list  |  /noai <id> <on|off>  |  /purge <id> [block]");
             msg(sender, TextFormatting.YELLOW, "/endportal <on|off>");
-            msg(sender, TextFormatting.YELLOW, "/memopt <info|clean|gc|set <items|xp|interval> <n>>");
-            msg(sender, TextFormatting.YELLOW, "/vanish [player]  " + TextFormatting.GRAY + "- скрыть игрока (алиас: /v)");
-            msg(sender, TextFormatting.YELLOW, "/chunkload [xzR [minY maxY] [dim]]  " + TextFormatting.GRAY + "- прогрузка (CC/vanilla)");
-            msg(sender, TextFormatting.YELLOW, "/chunkload stop|status              " + TextFormatting.GRAY + "- отмена / прогресс");
-            msg(sender, TextFormatting.YELLOW, "/town create|delete <название>      " + TextFormatting.GRAY + "- города (только админ)");
-            msg(sender, TextFormatting.YELLOW, "/town region owner <город> <регион> <игрок>");
+
+            msg(sender, TextFormatting.DARK_AQUA, "" + TextFormatting.BOLD + "• Города и репорты:");
+            msg(sender, TextFormatting.YELLOW, "/town create|delete <название>  |  /town member add|remove <игрок> [город]");
+            msg(sender, TextFormatting.YELLOW, "/reports [list [all]|resolve <id>|delete <id>]");
         }
 
         msg(sender, TextFormatting.DARK_GRAY,

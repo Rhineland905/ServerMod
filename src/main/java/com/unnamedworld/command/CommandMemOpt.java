@@ -22,7 +22,7 @@ public class CommandMemOpt extends CommandBase {
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "/memopt <info|clean|gc|set <items|xp|interval> <value>>";
+        return "/memopt <info|clean|gc|set <items|xp|interval|delay> <value>>";
     }
 
     @Override
@@ -37,9 +37,14 @@ public class CommandMemOpt extends CommandBase {
             String stats = mm.getMemoryStats(server.worlds);
             sender.sendMessage(new TextComponentString(TextFormatting.AQUA + stats));
             sender.sendMessage(new TextComponentString(
-                    TextFormatting.GRAY + "Limits — items/chunk: " + TextFormatting.WHITE + mm.itemsPerChunkLimit
-                    + TextFormatting.GRAY + "  xp/chunk: " + TextFormatting.WHITE + mm.xpOrbsPerChunkLimit
-                    + TextFormatting.GRAY + "  interval: " + TextFormatting.WHITE + mm.cleanupIntervalTicks + " ticks"));
+                    TextFormatting.GRAY + "Порог — items/chunk: " + TextFormatting.WHITE + mm.itemsPerChunkLimit
+                    + TextFormatting.GRAY + "  xp/chunk: " + TextFormatting.WHITE + mm.xpOrbsPerChunkLimit));
+            sender.sendMessage(new TextComponentString(
+                    TextFormatting.GRAY + "Скан: " + TextFormatting.WHITE + mm.scanIntervalTicks + " тик"
+                    + TextFormatting.GRAY + "  таймер очистки: " + TextFormatting.WHITE + mm.cleanupDelayTicks
+                    + " тик (" + Math.max(1, mm.cleanupDelayTicks / 20) + " c)"));
+            sender.sendMessage(new TextComponentString(
+                    TextFormatting.GRAY + "Чанков ждут очистки: " + TextFormatting.WHITE + mm.pendingCount()));
             return;
         }
 
@@ -67,7 +72,7 @@ public class CommandMemOpt extends CommandBase {
             case "set": {
                 if (args.length < 3) {
                     sender.sendMessage(new TextComponentString(
-                            TextFormatting.RED + "Usage: /memopt set <items|xp|interval> <value>"));
+                            TextFormatting.RED + "Usage: /memopt set <items|xp|interval|delay> <value>"));
                     return;
                 }
                 int value;
@@ -88,11 +93,14 @@ public class CommandMemOpt extends CommandBase {
                         mm.xpOrbsPerChunkLimit = value;
                         break;
                     case "interval":
-                        mm.cleanupIntervalTicks = value;
+                        mm.scanIntervalTicks = value;
+                        break;
+                    case "delay":
+                        mm.cleanupDelayTicks = value;
                         break;
                     default:
                         sender.sendMessage(new TextComponentString(
-                                TextFormatting.RED + "Unknown param. Use: items, xp, interval"));
+                                TextFormatting.RED + "Unknown param. Use: items, xp, interval, delay"));
                         return;
                 }
                 mm.save();
@@ -113,7 +121,7 @@ public class CommandMemOpt extends CommandBase {
         if (args.length == 1)
             return getListOfStringsMatchingLastWord(args, "info", "clean", "gc", "set");
         if (args.length == 2 && "set".equalsIgnoreCase(args[0]))
-            return getListOfStringsMatchingLastWord(args, "items", "xp", "interval");
+            return getListOfStringsMatchingLastWord(args, "items", "xp", "interval", "delay");
         return Collections.emptyList();
     }
 }

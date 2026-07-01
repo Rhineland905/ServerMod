@@ -20,6 +20,11 @@ public class CommandRegister extends CommandBase {
     @Override
     public int getRequiredPermissionLevel() { return 0; }
 
+    // Регистрация доступна ВСЕМ (в т.ч. до входа). Жёстко разрешаем, чтобы никакие
+    // настройки прав/уровней оператора не блокировали команду обычным игрокам.
+    @Override
+    public boolean checkPermission(MinecraftServer server, ICommandSender sender) { return true; }
+
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (!(sender instanceof EntityPlayerMP)) return;

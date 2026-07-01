@@ -142,11 +142,20 @@ public class OpModeManager {
         EntityPlayerMP player = (EntityPlayerMP) event.player;
 
         if (opModeActive.remove(uuid)) {
+            // Игрок вышел в режиме ОПа: сохраняем ОП-инвентарь и возвращаем обычный,
+            // чтобы в ванильный playerdata ушёл именно обычный инвентарь, а не ОП-лоадаут.
             saveInventory(uuid, "op", player);
             loadInventory(uuid, "player", player);
             player.interactionManager.setGameType(GameType.SURVIVAL);
-        } else {
+        } else if (usesOpMode(uuid)) {
+            // Снимок обычного инвентаря нужен только тем, кто пользуется опмодом (есть _op.nbt).
+            // Рядовым игрокам он бесполезен — их инвентарь и так хранится в ванильном playerdata.
             saveInventory(uuid, "player", player);
         }
+    }
+
+    /** Пользовался ли игрок режимом ОПа (есть ли сохранённый ОП-инвентарь). */
+    private boolean usesOpMode(UUID uuid) {
+        return new File(saveDir, uuid.toString() + "_op.nbt").exists();
     }
 }

@@ -28,7 +28,7 @@ public class CommandTown extends CommandBase {
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "/town <pos1|pos2|create|delete|list|info|region|member> ...";
+        return "/town <pos1|pos2|point|create|delete|list|info|region|member> ...";
     }
 
     // Доступна всем: игроки создают свои регионы.
@@ -65,29 +65,140 @@ public class CommandTown extends CommandBase {
                 break;
             }
 
+            case "point": {
+                if (!(sender instanceof EntityPlayerMP)) {
+                    sender.sendMessage(msg(TextFormatting.RED, "Команда только для игроков."));
+                    return;
+                }
+                EntityPlayerMP player = (EntityPlayerMP) sender;
+                UUID uuid = player.getUniqueID();
+                String sub = args.length >= 2 ? args[1].toLowerCase() : "add";
+                switch (sub) {
+                    case "add": {
+                        int x = MathHelper.floor(player.posX);
+                        int z = MathHelper.floor(player.posZ);
+                        tm.addPolyPoint(uuid, x, z, player.dimension);
+                        int n = tm.getPolyPoints(uuid).size();
+                        String tail = n < 3
+                                ? "Нужно ещё " + (3 - n) + " для города."
+                                : "Точек достаточно — /town create <название>.";
+                        sender.sendMessage(msg(TextFormatting.GREEN,
+                                "Точка #" + n + ": " + TextFormatting.YELLOW + x + ", " + z
+                                + TextFormatting.GREEN + " (мир " + player.dimension + "). " + tail));
+                        break;
+                    }
+                    case "undo": {
+                        int[] removed = tm.undoPolyPoint(uuid);
+                        if (removed == null) {
+                            sender.sendMessage(msg(TextFormatting.RED, "Список точек пуст."));
+                        } else {
+                            sender.sendMessage(msg(TextFormatting.GREEN,
+                                    "Убрана последняя точка (" + removed[0] + ", " + removed[1]
+                                    + "). Осталось: " + tm.getPolyPoints(uuid).size() + "."));
+                        }
+                        break;
+                    }
+                    case "clear": {
+                        tm.clearPolyPoints(uuid);
+                        sender.sendMessage(msg(TextFormatting.GREEN, "Точки разметки очищены."));
+                        break;
+                    }
+                    case "list": {
+                        List<int[]> pts = tm.getPolyPoints(uuid);
+                        if (pts.isEmpty()) {
+                            sender.sendMessage(msg(TextFormatting.GRAY,
+                                    "Точек нет. Добавляй по одной: /town point add"));
+                            break;
+                        }
+                        sender.sendMessage(msg(TextFormatting.GOLD,
+                                "--- Точки разметки (" + pts.size() + ") ---"));
+                        for (int i = 0; i < pts.size(); i++) {
+                            int[] p = pts.get(i);
+                            sender.sendMessage(new TextComponentString(
+                                    TextFormatting.AQUA + " #" + (i + 1)
+                                    + TextFormatting.GRAY + ": " + p[0] + ", " + p[1]
+                                    + " (мир " + p[2] + ")"));
+                        }
+                        break;
+                    }
+                    default:
+                        sender.sendMessage(msg(TextFormatting.GRAY,
+                                "/town point add — добавить точку (твоя позиция)\n"
+                              + "/town point undo — убрать последнюю\n"
+                              + "/town point clear — очистить\n"
+                              + "/town point list — список точек"));
+                }
+                break;
+            }
+
             case "create": {
                 if (!checkAdmin(sender, "создавать города")) return;
                 if (args.length < 2) {
                     sender.sendMessage(msg(TextFormatting.RED, "Использование: /town create <название>"));
                     return;
                 }
-                int[] sel = getSelection(tm, sender);
-                if (sel == null) return;
+                if (!(sender instanceof EntityPlayerMP)) {
+                    sender.sendMessage(msg(TextFormatting.RED, "Команда только для игроков."));
+                    return;
+                }
+                EntityPlayerMP player = (EntityPlayerMP) sender;
+                UUID uuid = player.getUniqueID();
                 String name = args[1];
-
                 if (tm.getTown(name) != null) {
                     sender.sendMessage(msg(TextFormatting.RED, "Город '" + name + "' уже существует."));
                     return;
                 }
+
+                List<int[]> poly = tm.getPolyPoints(uuid);
+                if (!poly.isEmpty() && poly.size() < 3) {
+                    sender.sendMessage(msg(TextFormatting.RED,
+                            "Для города по точкам нужно минимум 3 (сейчас " + poly.size()
+                            + "). Добавь ещё /town point add, либо /town point clear и используй pos1/pos2."));
+                    return;
+                }
+
+                if (poly.size() >= 3) {
+                    // ── Полигональный город ──
+                    int dim = poly.get(0)[2];
+                    int minX = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+                    int maxX = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+                    List<int[]> pts = new ArrayList<>();
+                    for (int[] p : poly) {
+                        if (p[2] != dim) {
+                            sender.sendMessage(msg(TextFormatting.RED, "Точки разметки в разных мирах."));
+                            return;
+                        }
+                        pts.add(new int[]{ p[0], p[1] });
+                        minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]);
+                        minZ = Math.min(minZ, p[1]); maxZ = Math.max(maxZ, p[1]);
+                    }
+                    Town overlap = tm.findOverlapping(dim, minX, minZ, maxX, maxZ);
+                    if (overlap != null) {
+                        sender.sendMessage(msg(TextFormatting.RED,
+                                "Зона пересекается с городом '" + overlap.name + "'."));
+                        return;
+                    }
+                    Town town = tm.createTownPoly(name, dim, pts);
+                    tm.clearPolyPoints(uuid);
+                    tm.clearSelection(uuid);
+                    sender.sendMessage(msg(TextFormatting.GREEN,
+                            "Город " + TextFormatting.GOLD + name + TextFormatting.GREEN
+                            + " создан по " + pts.size() + " точкам. Границы: "
+                            + zone(town.x1, town.z1, town.x2, town.z2)));
+                    return;
+                }
+
+                // ── Прямоугольный город (pos1/pos2) ──
+                int[] sel = getSelection(tm, sender);
+                if (sel == null) return;
                 Town overlap = tm.findOverlapping(sel[4], sel[0], sel[1], sel[2], sel[3]);
                 if (overlap != null) {
                     sender.sendMessage(msg(TextFormatting.RED,
                             "Зона пересекается с городом '" + overlap.name + "'."));
                     return;
                 }
-
                 Town town = tm.createTown(name, sel[4], sel[0], sel[1], sel[2], sel[3]);
-                tm.clearSelection(((EntityPlayerMP) sender).getUniqueID());
+                tm.clearSelection(uuid);
                 sender.sendMessage(msg(TextFormatting.GREEN,
                         "Город " + TextFormatting.GOLD + name + TextFormatting.GREEN
                         + " создан: " + zone(town.x1, town.z1, town.x2, town.z2)));
@@ -121,6 +232,7 @@ public class CommandTown extends CommandBase {
                             TextFormatting.YELLOW + " " + t.name
                           + TextFormatting.GRAY + " — мир " + t.dim + ", "
                           + zone(t.x1, t.z1, t.x2, t.z2)
+                          + (t.points.size() >= 3 ? " [полигон " + t.points.size() + "т]" : "")
                           + ", регионов: " + t.regions.size()));
                 }
                 break;
@@ -136,7 +248,10 @@ public class CommandTown extends CommandBase {
 
                 sender.sendMessage(msg(TextFormatting.GOLD, "--- Город " + town.name + " ---"));
                 sender.sendMessage(msg(TextFormatting.GRAY,
-                        "Мир " + town.dim + ", зона " + zone(town.x1, town.z1, town.x2, town.z2)));
+                        "Мир " + town.dim + ", зона " + zone(town.x1, town.z1, town.x2, town.z2)
+                        + (town.points.size() >= 3
+                                ? " (полигон из " + town.points.size() + " точек)"
+                                : " (прямоугольник)")));
                 if (town.members.isEmpty()) {
                     sender.sendMessage(msg(TextFormatting.GRAY, "Жителей нет."));
                 } else {
@@ -149,11 +264,9 @@ public class CommandTown extends CommandBase {
                 } else {
                     sender.sendMessage(msg(TextFormatting.GOLD, "Регионы (" + town.regions.size() + "):"));
                     for (Region r : town.regions) {
-                        String owner = r.ownerName == null ? "без владельца" : r.ownerName;
                         sender.sendMessage(new TextComponentString(
                                 TextFormatting.AQUA + " " + r.name
-                              + TextFormatting.GRAY + " — " + zone(r.x1, r.z1, r.x2, r.z2)
-                              + ", владелец: " + TextFormatting.WHITE + owner));
+                              + TextFormatting.GRAY + " — " + zone(r.x1, r.z1, r.x2, r.z2)));
                     }
                 }
                 break;
@@ -299,8 +412,7 @@ public class CommandTown extends CommandBase {
                             + town.name + " " + zone(town.x1, town.z1, town.x2, town.z2) + "."));
                     return;
                 }
-                boolean admin = isAdmin(sender);
-                if (!admin && !town.isMember(player.getUniqueID())) {
+                if (!isAdmin(sender) && !town.isMember(player.getUniqueID())) {
                     sender.sendMessage(msg(TextFormatting.RED,
                             "Ты не житель города " + town.name + ". Жителей добавляет админ: "
                             + "/town member add " + player.getName() + " " + town.name));
@@ -319,34 +431,11 @@ public class CommandTown extends CommandBase {
                     }
                 }
 
-                boolean admin = isAdmin(sender);
-                String ownerUUID, ownerName;
-                if (args.length >= 4) {
-                    // Явный владелец — только для админа
-                    if (!admin) {
-                        sender.sendMessage(msg(TextFormatting.RED,
-                                "Только администратор может назначать владельца региона."));
-                        return;
-                    }
-                    EntityPlayerMP owner = getPlayer(server, sender, args[3]);
-                    ownerUUID = owner.getUniqueID().toString();
-                    ownerName = owner.getName();
-                } else if (admin) {
-                    // Админ без аргумента — админский регион (без владельца)
-                    ownerUUID = null;
-                    ownerName = null;
-                } else {
-                    // Игрок — сам становится владельцем своего региона
-                    ownerUUID = player.getUniqueID().toString();
-                    ownerName = player.getName();
-                }
-
-                tm.createRegion(town, name, sel[0], sel[1], sel[2], sel[3], ownerUUID, ownerName);
+                tm.createRegion(town, name, sel[0], sel[1], sel[2], sel[3]);
                 tm.clearSelection(player.getUniqueID());
                 sender.sendMessage(msg(TextFormatting.GREEN,
                         "Регион " + TextFormatting.AQUA + name + TextFormatting.GREEN
-                        + " создан в городе " + town.name
-                        + (ownerName == null ? " (админский)" : ", владелец: " + ownerName)));
+                        + " создан в городе " + town.name + "."));
                 break;
             }
 
@@ -377,41 +466,16 @@ public class CommandTown extends CommandBase {
                             "Регион '" + name + "' не найден в городе " + town.name + "."));
                     return;
                 }
-                boolean own = sender instanceof EntityPlayerMP
-                        && region.ownerUUID != null
-                        && region.ownerUUID.equals(((EntityPlayerMP) sender).getUniqueID().toString());
-                if (!own && !isAdmin(sender)) {
-                    sender.sendMessage(msg(TextFormatting.RED, "Можно удалять только свои регионы."));
+                boolean member = sender instanceof EntityPlayerMP
+                        && town.isMember(((EntityPlayerMP) sender).getUniqueID());
+                if (!member && !isAdmin(sender)) {
+                    sender.sendMessage(msg(TextFormatting.RED,
+                            "Удалять регионы могут только жители города " + town.name + "."));
                     return;
                 }
 
                 tm.deleteRegion(town, name);
                 sender.sendMessage(msg(TextFormatting.GREEN, "Регион '" + name + "' удалён."));
-                break;
-            }
-
-            case "owner": {
-                if (!checkAdmin(sender, "назначать владельцев регионов")) return;
-                if (args.length < 5) {
-                    sender.sendMessage(msg(TextFormatting.RED,
-                            "Использование: /town region owner <город> <регион> <игрок>"));
-                    return;
-                }
-                Town town = requireTown(tm, sender, args[2]);
-                if (town == null) return;
-                Region region = town.getRegion(args[3]);
-                if (region == null) {
-                    sender.sendMessage(msg(TextFormatting.RED,
-                            "Регион '" + args[3] + "' не найден в городе " + town.name + "."));
-                    return;
-                }
-                EntityPlayerMP owner = getPlayer(server, sender, args[4]);
-                tm.setRegionOwner(region, owner.getUniqueID().toString(), owner.getName());
-                sender.sendMessage(msg(TextFormatting.GREEN,
-                        "Владелец региона " + region.name + " — теперь " + owner.getName() + "."));
-                owner.sendMessage(msg(TextFormatting.GOLD,
-                        "Тебе выдан регион " + TextFormatting.AQUA + region.name
-                        + TextFormatting.GOLD + " в городе " + town.name + "!"));
                 break;
             }
 
@@ -436,11 +500,9 @@ public class CommandTown extends CommandBase {
                 sender.sendMessage(msg(TextFormatting.GOLD,
                         "--- Регионы города " + town.name + " ---"));
                 for (Region r : town.regions) {
-                    String owner = r.ownerName == null ? "без владельца" : r.ownerName;
                     sender.sendMessage(new TextComponentString(
                             TextFormatting.AQUA + " " + r.name
-                          + TextFormatting.GRAY + " — " + zone(r.x1, r.z1, r.x2, r.z2)
-                          + ", владелец: " + TextFormatting.WHITE + owner));
+                          + TextFormatting.GRAY + " — " + zone(r.x1, r.z1, r.x2, r.z2)));
                 }
                 break;
             }
@@ -459,14 +521,20 @@ public class CommandTown extends CommandBase {
 
         if (args.length == 1) {
             return getListOfStringsMatchingLastWord(args,
-                    "pos1", "pos2", "create", "delete", "list", "info", "region");
+                    "pos1", "pos2", "point", "create", "delete", "list", "info", "region", "member");
         }
         if (args.length == 2) {
             if (args[0].equalsIgnoreCase("delete") || args[0].equalsIgnoreCase("info")) {
                 return getListOfStringsMatchingLastWord(args, tm.getTownNames());
             }
+            if (args[0].equalsIgnoreCase("point")) {
+                return getListOfStringsMatchingLastWord(args, "add", "undo", "clear", "list");
+            }
             if (args[0].equalsIgnoreCase("region")) {
-                return getListOfStringsMatchingLastWord(args, "create", "delete", "owner", "list");
+                return getListOfStringsMatchingLastWord(args, "create", "delete", "list");
+            }
+            if (args[0].equalsIgnoreCase("member")) {
+                return getListOfStringsMatchingLastWord(args, "add", "remove", "list");
             }
         }
         if (args[0].equalsIgnoreCase("region")) {
@@ -475,30 +543,33 @@ public class CommandTown extends CommandBase {
                 switch (sub) {
                     case "delete":
                         return getListOfStringsMatchingLastWord(args, regionNamesAt(tm, sender));
-                    case "owner":
                     case "list":
                         return getListOfStringsMatchingLastWord(args, tm.getTownNames());
                 }
             }
-            if (args.length == 4) {
+            if (args.length == 4 && sub.equals("delete")) {
+                return getListOfStringsMatchingLastWord(args, tm.getTownNames());
+            }
+        }
+        if (args[0].equalsIgnoreCase("member")) {
+            String sub = args[1].toLowerCase();
+            if (args.length == 3) {
                 switch (sub) {
-                    case "create":
+                    case "add":
                         return getListOfStringsMatchingLastWord(args, server.getOnlinePlayerNames());
-                    case "delete":
-                        return getListOfStringsMatchingLastWord(args, tm.getTownNames());
-                    case "owner": {
-                        Town town = tm.getTown(args[2]);
-                        if (town != null) {
-                            List<String> names = new ArrayList<>();
-                            for (Region r : town.regions) names.add(r.name);
-                            return getListOfStringsMatchingLastWord(args, names);
+                    case "remove": {
+                        Town town = townAt(tm, sender);
+                        if (town != null && !town.members.isEmpty()) {
+                            return getListOfStringsMatchingLastWord(args, town.members.values());
                         }
-                        break;
+                        return getListOfStringsMatchingLastWord(args, server.getOnlinePlayerNames());
                     }
+                    case "list":
+                        return getListOfStringsMatchingLastWord(args, tm.getTownNames());
                 }
             }
-            if (args.length == 5 && sub.equals("owner")) {
-                return getListOfStringsMatchingLastWord(args, server.getOnlinePlayerNames());
+            if (args.length == 4 && (sub.equals("add") || sub.equals("remove"))) {
+                return getListOfStringsMatchingLastWord(args, tm.getTownNames());
             }
         }
         return Collections.emptyList();
@@ -586,6 +657,22 @@ public class CommandTown extends CommandBase {
         return town;
     }
 
+    /**
+     * Город из аргумента args[idx], если он указан, иначе город, в котором
+     * стоит игрок. null = город не определён, сообщение уже отправлено.
+     */
+    @Nullable
+    private Town resolveTown(TownManager tm, ICommandSender sender, String[] args, int idx, String hint) {
+        if (args.length > idx) {
+            return requireTown(tm, sender, args[idx]);
+        }
+        Town town = townAt(tm, sender);
+        if (town == null) {
+            sender.sendMessage(msg(TextFormatting.RED, "Ты не в городе. Укажи город: " + hint));
+        }
+        return town;
+    }
+
     private String zone(int x1, int z1, int x2, int z2) {
         return "(" + x1 + ", " + z1 + ") — (" + x2 + ", " + z2 + ")";
     }
@@ -593,20 +680,28 @@ public class CommandTown extends CommandBase {
     private void sendUsage(ICommandSender sender) {
         sender.sendMessage(msg(TextFormatting.RED, "Использование: " + getUsage(sender)));
         sender.sendMessage(msg(TextFormatting.GRAY,
-                "/town pos1, /town pos2 — выделить углы зоны\n"
-              + "/town create <название> — создать город (админ)\n"
+                "/town pos1, /town pos2 — выделить углы зоны (прямоугольник)\n"
+              + "/town point add|undo|clear|list — разметка города по точкам (полигон, ≥3)\n"
+              + "/town create <название> — создать город из выделения/точек (админ)\n"
               + "/town delete <название> — удалить город (админ)\n"
               + "/town list — список городов\n"
               + "/town info <название> — информация о городе\n"
-              + "/town region ... — регионы внутри города"));
+              + "/town region ... — регионы внутри города\n"
+              + "/town member ... — жители города"));
     }
 
     private void sendRegionUsage(ICommandSender sender) {
         sender.sendMessage(msg(TextFormatting.GRAY,
-                "/town region create <название> — создать свой регион из выделения (только в городе)\n"
-              + "/town region delete <название> [город] — удалить свой регион\n"
-              + "/town region owner <город> <регион> <игрок> — назначить владельца (админ)\n"
+                "/town region create <название> — создать регион из выделения (в своём городе)\n"
+              + "/town region delete <название> [город] — удалить регион\n"
               + "/town region list [город] — список регионов"));
+    }
+
+    private void sendMemberUsage(ICommandSender sender) {
+        sender.sendMessage(msg(TextFormatting.GRAY,
+                "/town member add <игрок> [город] — добавить жителя (админ)\n"
+              + "/town member remove <игрок> [город] — убрать жителя (админ)\n"
+              + "/town member list [город] — список жителей"));
     }
 
     private TextComponentString msg(TextFormatting color, String text) {

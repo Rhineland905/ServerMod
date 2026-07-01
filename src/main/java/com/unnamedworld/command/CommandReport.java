@@ -1,6 +1,7 @@
 package com.unnamedworld.command;
 
 import com.unnamedworld.manager.ReportManager;
+import com.unnamedworld.manager.TelegramManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -25,6 +26,11 @@ public class CommandReport extends CommandBase {
     @Override
     public int getRequiredPermissionLevel() { return 0; }
 
+    // Репорт доступен ВСЕМ игрокам. Жёстко разрешаем, чтобы настройки прав/уровней
+    // оператора не блокировали команду обычным игрокам (как сделано у /login).
+    @Override
+    public boolean checkPermission(MinecraftServer server, ICommandSender sender) { return true; }
+
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (!(sender instanceof EntityPlayerMP)) {
@@ -42,6 +48,9 @@ public class CommandReport extends CommandBase {
 
         sender.sendMessage(msg(TextFormatting.GREEN,
                 "Репорт #" + id + " отправлен администраторам. Спасибо!"));
+
+        // Продублировать репорт в Telegram (если настроен)
+        TelegramManager.INSTANCE.notifyReport(id, player.getName(), message);
 
         // Уведомить всех онлайн-операторов
         String notify = TextFormatting.YELLOW + "[Репорт #" + id + "] "

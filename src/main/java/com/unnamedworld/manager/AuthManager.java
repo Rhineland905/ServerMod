@@ -2,12 +2,14 @@ package com.unnamedworld.manager;
 
 import com.unnamedworld.ServerMod;
 import com.google.gson.*;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.event.CommandEvent;
 import net.minecraftforge.event.ServerChatEvent;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -119,6 +121,7 @@ public class AuthManager {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onChat(ServerChatEvent event) {
+        if (freezePos.isEmpty()) return; // все авторизованы — быстрый выход
         if (authed.contains(event.getPlayer().getUniqueID())) return;
         event.setCanceled(true);
         event.getPlayer().sendMessage(msg(TextFormatting.RED, "Сначала войди в аккаунт."));
@@ -126,6 +129,7 @@ public class AuthManager {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onCommand(CommandEvent event) {
+        if (freezePos.isEmpty()) return; // все авторизованы — быстрый выход
         if (!(event.getSender() instanceof EntityPlayerMP)) return;
         UUID uuid = ((EntityPlayerMP) event.getSender()).getUniqueID();
         if (authed.contains(uuid)) return;
@@ -137,14 +141,38 @@ public class AuthManager {
         event.getSender().sendMessage(msg(TextFormatting.RED, "Сначала войди: /login <пароль>"));
     }
 
+    // Пока игрок не вошёл (стоит на логине):
+    //  1) он неуязвим — ни падение, ни мобы, ни огонь, ни голод не наносят урона;
+    //  2) он сам никого не может бить — ни мобов, ни других игроков (ближний бой,
+    //     стрелы и любой косвенный урон от него отменяются).
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onAttack(LivingAttackEvent event) {
+        if (freezePos.isEmpty()) return; // все авторизованы — урон обрабатывается как обычно
+
+        // 1. Незалогиненная ЖЕРТВА неуязвима.
+        if (event.getEntity() instanceof EntityPlayerMP
+                && !authed.contains(event.getEntity().getUniqueID())) {
+            event.setCanceled(true);
+            return;
+        }
+
+        // 2. Незалогиненный АТАКУЮЩИЙ не наносит урона никому.
+        Entity src = event.getSource().getTrueSource();
+        if (src instanceof EntityPlayerMP && !authed.contains(src.getUniqueID())) {
+            event.setCanceled(true);
+        }
+    }
+
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onBlockBreak(BlockEvent.BreakEvent event) {
+        if (freezePos.isEmpty()) return; // все авторизованы — быстрый выход
         if (!(event.getPlayer() instanceof EntityPlayerMP)) return;
         if (!authed.contains(event.getPlayer().getUniqueID())) event.setCanceled(true);
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onBlockPlace(BlockEvent.PlaceEvent event) {
+        if (freezePos.isEmpty()) return; // все авторизованы — быстрый выход
         if (!(event.getPlayer() instanceof EntityPlayerMP)) return;
         if (!authed.contains(event.getPlayer().getUniqueID())) event.setCanceled(true);
     }
