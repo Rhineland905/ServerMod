@@ -25,7 +25,7 @@ import java.util.*;
  *   /entities                — сводка: всего + категории + топ типов + по измерениям
  *   /entities &lt;dim&gt;         — топ типов в конкретном измерении (0 — обычный, -1 — Ад, 1 — Энд)
  *   /entities top [N]        — чанки с наибольшим числом сущностей (по умолч. 10)
- *   /entities here [радиус]  — типы сущностей вокруг тебя (радиус в чанках, по умолч. 4)
+ *   /entities here [радиус]  — типы сущностей вокруг тебя (радиус в чанках/кубах по X/Z/Y, по умолч. 4)
  */
 public class CommandEntities extends CommandBase {
 
@@ -150,11 +150,16 @@ public class CommandEntities extends CommandBase {
         EntityPlayerMP p = (EntityPlayerMP) sender;
         WorldServer w = (WorldServer) p.world;
         int pcx = p.chunkCoordX, pcz = p.chunkCoordZ;
+        // Куб/чанк по высоте (16 блоков) — на CubicChunks вертикаль огромная, без этой
+        // проверки сущность в 200 блоках над/под тобой засчиталась бы как "рядом".
+        int pcy = net.minecraft.util.math.MathHelper.floor(p.posY) >> 4;
 
         Map<String, Integer> types = new HashMap<>();
         int total = 0;
         for (Entity e : w.loadedEntityList) {
             if (Math.abs(e.chunkCoordX - pcx) > radius || Math.abs(e.chunkCoordZ - pcz) > radius) continue;
+            int ecy = net.minecraft.util.math.MathHelper.floor(e.posY) >> 4;
+            if (Math.abs(ecy - pcy) > radius) continue;
             types.merge(typeKey(e), 1, Integer::sum);
             total++;
         }

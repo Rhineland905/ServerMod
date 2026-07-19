@@ -39,6 +39,7 @@ public class TelegramManager {
     private boolean notifyOnlySuspicious = false;
     private boolean includeModList = true;
     private boolean notifyReports = true;
+    private boolean notifyResourcePacks = true;
 
     private File saveFile;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -65,7 +66,8 @@ public class TelegramManager {
                 + ", чат " + (chatId.isEmpty() ? "НЕ задан" : chatId)
                 + ", режим: " + (notifyOnlySuspicious ? "только подозрительные" : "все входы")
                 + ", список модов: " + (includeModList ? "да" : "нет")
-                + ", репорты: " + (notifyReports ? "да" : "нет") + ".";
+                + ", репорты: " + (notifyReports ? "да" : "нет")
+                + ", ресурспаки: " + (notifyResourcePacks ? "да" : "нет") + ".";
     }
 
     // --- Уведомление о входе ---
@@ -100,6 +102,27 @@ public class TelegramManager {
     public void notifyReport(int id, String player, String message) {
         if (!isConfigured() || !notifyReports) return;
         sendAsync("📣 Репорт #" + id + "\nИгрок: " + player + "\nСообщение: " + message);
+    }
+
+    /** Список ресурспаков игрока (прислан клиентским модом). suspicious — совпавшие с чёрным списком. */
+    public void notifyResourcePacks(String player, List<String> packs, List<String> suspicious) {
+        if (!isConfigured() || !notifyResourcePacks) return;
+        boolean hasSus = suspicious != null && !suspicious.isEmpty();
+        if (!hasSus && notifyOnlySuspicious) return; // тихий режим: только варны
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(hasSus ? "⚠️ ВНИМАНИЕ — подозрительные ресурспаки\n" : "🎨 Ресурспаки\n");
+        sb.append("Игрок: ").append(player).append("\n");
+        sb.append("Паков: ").append(packs.size());
+        if (hasSus) sb.append("\n⚠️ Подозрительные: ").append(String.join(", ", suspicious));
+        if (!packs.isEmpty()) sb.append("\nСписок: ").append(String.join(", ", packs));
+        sendAsync(sb.toString());
+    }
+
+    /** Уведомление о кике (проверка клиента не пройдена). Шлётся всегда, как варн. */
+    public void notifyKick(String player, String reason) {
+        if (!isConfigured()) return;
+        sendAsync("⛔ Кик\nИгрок: " + player + "\nПричина: " + reason);
     }
 
     /** Тестовое сообщение (для проверки настроек). true — если задача поставлена в очередь. */
@@ -182,6 +205,7 @@ public class TelegramManager {
             if (o.has("notifyOnlySuspicious")) notifyOnlySuspicious = o.get("notifyOnlySuspicious").getAsBoolean();
             if (o.has("includeModList"))       includeModList       = o.get("includeModList").getAsBoolean();
             if (o.has("notifyReports"))        notifyReports        = o.get("notifyReports").getAsBoolean();
+            if (o.has("notifyResourcePacks"))  notifyResourcePacks  = o.get("notifyResourcePacks").getAsBoolean();
         } catch (Exception e) {
             ServerMod.LOGGER.error("[Telegram] не удалось загрузить telegram.json", e);
         }
@@ -198,6 +222,7 @@ public class TelegramManager {
             o.addProperty("notifyOnlySuspicious", notifyOnlySuspicious);
             o.addProperty("includeModList", includeModList);
             o.addProperty("notifyReports", notifyReports);
+            o.addProperty("notifyResourcePacks", notifyResourcePacks);
             gson.toJson(o, w);
         } catch (Exception e) {
             ServerMod.LOGGER.error("[Telegram] не удалось сохранить telegram.json", e);

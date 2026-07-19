@@ -58,13 +58,15 @@ public class CommandFlowers extends CommandBase {
                 break;
 
             case "status":
-                reply(sender, TextFormatting.GOLD + "Цветы Botania (обход CubicChunks):");
+                reply(sender, TextFormatting.GOLD + "Авто-подсадка растений (обход CubicChunks):");
                 reply(sender, TextFormatting.GRAY + " • авто-подсадка: "
                         + (mgr.isEnabled() ? TextFormatting.GREEN + "вкл" : TextFormatting.RED + "выкл"));
-                reply(sender, TextFormatting.GRAY + " • блок botania:flower: "
-                        + (mgr.hasFlowerBlock() ? TextFormatting.GREEN + "найден" : TextFormatting.RED + "НЕ найден"));
-                reply(sender, TextFormatting.GRAY + " • оценено чанков: "
-                        + TextFormatting.WHITE + mgr.seededCount());
+                reply(sender, TextFormatting.GRAY + " • botania:flower: "
+                        + (mgr.hasFlowerBlock() ? TextFormatting.GREEN + "найден" : TextFormatting.RED + "НЕ найден")
+                        + TextFormatting.GRAY + ", оценено чанков: " + TextFormatting.WHITE + mgr.seededCount());
+                reply(sender, TextFormatting.GRAY + " • hbm:plant_flower: "
+                        + (mgr.hasHbmBlock() ? TextFormatting.GREEN + "найден" : TextFormatting.RED + "НЕ найден")
+                        + TextFormatting.GRAY + ", оценено чанков: " + TextFormatting.WHITE + mgr.seededHbmCount());
                 break;
 
             case "seed": {
@@ -83,9 +85,9 @@ public class CommandFlowers extends CommandBase {
                 }
                 int placed = mgr.forceSeed((WorldServer) player.world, player, radius);
                 if (placed < 0) {
-                    reply(sender, TextFormatting.RED + "Botania не установлена или блок botania:flower не найден.");
+                    reply(sender, TextFormatting.RED + "Не найдено ни botania:flower, ни hbm:plant_flower — сеять нечего.");
                 } else {
-                    reply(sender, TextFormatting.GREEN + "Посажено цветков: " + TextFormatting.WHITE + placed
+                    reply(sender, TextFormatting.GREEN + "Посажено растений: " + TextFormatting.WHITE + placed
                             + TextFormatting.GREEN + " (радиус " + radius + " чанк.). "
                             + TextFormatting.GRAY + "Прогрузи/осмотрись вокруг.");
                 }

@@ -4,6 +4,10 @@ import com.google.gson.*;
 import com.unnamedworld.ServerMod;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.NetworkManager;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.common.network.handshake.NetworkDispatcher;
@@ -32,6 +36,12 @@ public class ModCheckManager {
 
     // modid'ы, которые считаем подозрительными (нижний регистр). Редактируемый.
     private final Set<String> blacklist = new LinkedHashSet<>();
+
+    // Обязательный клиентский мод: кикаем игроков без unnamedworld нужной версии
+    // (старый клиент не шлёт отчёт о ресурспаках — считаем проверку не пройденной).
+    private boolean requireClientMod = true;
+    private String  requiredVersion  = "1.1";
+
     private File saveFile;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -101,6 +111,7 @@ public class ModCheckManager {
         if (mods == null || mods.isEmpty()) {
             ServerMod.LOGGER.info("[ModCheck] {}: список модов недоступен (ванила/локальный клиент?)", name);
             TelegramManager.INSTANCE.notifyJoin(name, null, Collections.emptyList());
+            checkClientVersion(player, null);
             return;
         }
 
@@ -115,6 +126,59 @@ public class ModCheckManager {
                     name, String.join(", ", hits));
         }
         TelegramManager.INSTANCE.notifyJoin(name, ids, hits);
+        checkClientVersion(player, mods);
+    }
+
+    // --- Обязательная версия клиентского мода ---
+
+    public boolean isRequireClientMod() { return requireClientMod; }
+    public String  getRequiredVersion() { return requiredVersion; }
+
+    public void setRequiredVersion(String version) {
+        if (version == null) {
+            requireClientMod = false;
+        } else {
+            requireClientMod = true;
+            requiredVersion = version;
+        }
+        save();
+    }
+
+    /** Кикает игрока, если у него нет клиентского мода unnamedworld нужной версии. */
+    private void checkClientVersion(EntityPlayerMP player, Map<String, String> mods) {
+        if (!requireClientMod) return;
+        String ver = mods == null ? null : mods.get(ServerMod.MODID);
+        if (ver != null && compareVersions(ver, requiredVersion) >= 0) return;
+
+        String name = player.getName();
+        String have = ver == null ? "отсутствует" : ver;
+        ServerMod.LOGGER.warn("[ModCheck] {} кикнут: клиентский мод {} (требуется {}+)", name, have, requiredVersion);
+        TelegramManager.INSTANCE.notifyKick(name,
+                "не пройдена проверка на читы (клиентский мод " + have + ", требуется " + requiredVersion + "+)");
+
+        MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+        if (server == null) return;
+        // Кик — на следующем тике, чтобы не рвать соединение внутри обработчиков логина.
+        server.addScheduledTask(() -> {
+            if (player.connection != null) {
+                player.connection.disconnect(new TextComponentString(
+                        TextFormatting.RED + "Не пройдена проверка на читы.\n"
+                      + TextFormatting.YELLOW + "Обнови сборку до последней версии."));
+            }
+        });
+    }
+
+    /** Сравнение версий вида "1.10.2": по числовым частям. Некорректная версия считается меньшей. */
+    private static int compareVersions(String a, String b) {
+        String[] pa = a.trim().split("\\."), pb = b.trim().split("\\.");
+        int n = Math.max(pa.length, pb.length);
+        for (int i = 0; i < n; i++) {
+            int va, vb;
+            try { va = i < pa.length ? Integer.parseInt(pa[i].trim()) : 0; } catch (NumberFormatException e) { return -1; }
+            try { vb = i < pb.length ? Integer.parseInt(pb[i].trim()) : 0; } catch (NumberFormatException e) { return 1; }
+            if (va != vb) return va < vb ? -1 : 1;
+        }
+        return 0;
     }
 
     // --- Чтение списка модов клиента ---
@@ -159,6 +223,8 @@ public class ModCheckManager {
             if (o != null && o.has("blacklist")) {
                 for (JsonElement el : o.getAsJsonArray("blacklist")) blacklist.add(el.getAsString().toLowerCase());
             }
+            if (o != null && o.has("requireClientMod")) requireClientMod = o.get("requireClientMod").getAsBoolean();
+            if (o != null && o.has("requiredClientVersion")) requiredVersion = o.get("requiredClientVersion").getAsString();
         } catch (Exception e) {
             ServerMod.LOGGER.error("[ModCheck] не удалось загрузить modcheck.json", e);
         }
@@ -176,6 +242,8 @@ public class ModCheckManager {
             JsonArray arr = new JsonArray();
             for (String s : blacklist) arr.add(s);
             o.add("blacklist", arr);
+            o.addProperty("requireClientMod", requireClientMod);
+            o.addProperty("requiredClientVersion", requiredVersion);
             gson.toJson(o, w);
         } catch (Exception e) {
             ServerMod.LOGGER.error("[ModCheck] не удалось сохранить modcheck.json", e);

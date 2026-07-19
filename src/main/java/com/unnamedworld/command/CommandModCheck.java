@@ -35,7 +35,7 @@ public class CommandModCheck extends CommandBase {
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "/modcheck <игрок> | blacklist | block <modid> | unblock <modid> | reload | tg <test|reload|status>";
+        return "/modcheck <игрок> | blacklist | block <modid> | unblock <modid> | version [<x.y>|off] | reload | tg <test|reload|status>";
     }
 
     @Override
@@ -69,6 +69,27 @@ public class CommandModCheck extends CommandBase {
             case "reload": {
                 mgr.reload();
                 reply(sender, TextFormatting.GREEN, "modcheck.json перечитан. В списке " + mgr.getBlacklist().size() + " modid.");
+                return;
+            }
+            case "version": {
+                if (args.length < 2) {
+                    reply(sender, TextFormatting.AQUA, mgr.isRequireClientMod()
+                            ? "Обязательная версия клиентского мода: " + mgr.getRequiredVersion()
+                              + "+ (без неё кикает с «не пройдена проверка на читы»)."
+                            : "Проверка версии клиентского мода ВЫКЛЮЧЕНА.");
+                    return;
+                }
+                if (args[1].equalsIgnoreCase("off")) {
+                    mgr.setRequiredVersion(null);
+                    reply(sender, TextFormatting.YELLOW, "Проверка версии клиентского мода выключена.");
+                } else if (!args[1].matches("\\d+(\\.\\d+)*")) {
+                    reply(sender, TextFormatting.RED, "Версия должна быть числом вида 1.1 (или off). "
+                            + "Текущее требование: " + (mgr.isRequireClientMod() ? mgr.getRequiredVersion() + "+" : "выключено") + ".");
+                } else {
+                    mgr.setRequiredVersion(args[1]);
+                    reply(sender, TextFormatting.GREEN, "Теперь требуется клиентский мод версии "
+                            + args[1] + "+. Игроки со старой версией будут кикаться при входе.");
+                }
                 return;
             }
             case "tg": {
@@ -121,7 +142,7 @@ public class CommandModCheck extends CommandBase {
     public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender,
                                           String[] args, @Nullable BlockPos pos) {
         if (args.length == 1) {
-            List<String> opts = new ArrayList<>(Arrays.asList("blacklist", "block", "unblock", "reload", "tg"));
+            List<String> opts = new ArrayList<>(Arrays.asList("blacklist", "block", "unblock", "version", "reload", "tg"));
             opts.addAll(Arrays.asList(server.getOnlinePlayerNames()));
             return getListOfStringsMatchingLastWord(args, opts);
         }
@@ -129,6 +150,8 @@ public class CommandModCheck extends CommandBase {
             return getListOfStringsMatchingLastWord(args, new ArrayList<>(ModCheckManager.INSTANCE.getBlacklist()));
         if (args.length == 2 && args[0].equalsIgnoreCase("tg"))
             return getListOfStringsMatchingLastWord(args, "test", "reload", "status");
+        if (args.length == 2 && args[0].equalsIgnoreCase("version"))
+            return getListOfStringsMatchingLastWord(args, "1.1", "off");
         return Collections.emptyList();
     }
 }

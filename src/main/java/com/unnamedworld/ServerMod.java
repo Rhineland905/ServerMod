@@ -9,6 +9,7 @@ import com.unnamedworld.command.CommandFlowers;
 import com.unnamedworld.command.CommandUW;
 import com.unnamedworld.command.CommandLogin;
 import com.unnamedworld.command.CommandMemOpt;
+import com.unnamedworld.command.CommandMobBoost;
 import com.unnamedworld.command.CommandModCheck;
 import com.unnamedworld.command.CommandMute;
 import com.unnamedworld.command.CommandMuteList;
@@ -16,6 +17,7 @@ import com.unnamedworld.command.CommandUnmute;
 import com.unnamedworld.command.CommandNoAI;
 import com.unnamedworld.command.CommandNoSpawn;
 import com.unnamedworld.command.CommandOreThin;
+import com.unnamedworld.command.CommandOres;
 import com.unnamedworld.command.CommandPurge;
 import com.unnamedworld.command.CommandRegister;
 import com.unnamedworld.command.CommandOpMode;
@@ -36,10 +38,12 @@ import com.unnamedworld.manager.AutoRestartManager;
 import com.unnamedworld.manager.FlowerSeedManager;
 import com.unnamedworld.manager.SpawnManager;
 import com.unnamedworld.manager.MemoryManager;
+import com.unnamedworld.manager.MobBoostManager;
 import com.unnamedworld.manager.ModCheckManager;
 import com.unnamedworld.manager.TelegramManager;
 import com.unnamedworld.manager.MuteManager;
 import com.unnamedworld.manager.OpModeManager;
+import com.unnamedworld.manager.OreSeedManager;
 import com.unnamedworld.manager.PregenManager;
 import com.unnamedworld.manager.PortalManager;
 import com.unnamedworld.manager.TabListManager;
@@ -50,7 +54,10 @@ import com.unnamedworld.manager.SizeManager;
 import com.unnamedworld.manager.TownManager;
 import com.unnamedworld.manager.VanishManager;
 import com.unnamedworld.manager.WhitelistManager;
+import com.unnamedworld.network.MessageResourcePacks;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.network.NetworkRegistry;
+import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
@@ -94,12 +101,19 @@ public class ServerMod {
         HealthManager.INSTANCE.init(configDir);
         WhitelistManager.INSTANCE.init(configDir);
         FlowerSeedManager.INSTANCE.init(configDir);
+        OreSeedManager.INSTANCE.init(configDir);
         PregenManager.INSTANCE.init(configDir);
         MuteManager.INSTANCE.init(configDir);
         AutoRestartManager.INSTANCE.init(configDir);
         ModCheckManager.INSTANCE.init(configDir);
+        MobBoostManager.INSTANCE.init(configDir);
         TelegramManager.INSTANCE.init(configDir);
         TabListManager.INSTANCE.init();
+
+        // Канал от клиентского мода UnnamedWorld: список ресурспаков игрока при заходе.
+        // Имя канала и дискриминатор должны совпадать с NetworkHandler клиента.
+        NetworkRegistry.INSTANCE.newSimpleChannel("uw_rpacks")
+                .registerMessage(MessageResourcePacks.Handler.class, MessageResourcePacks.class, 0, Side.SERVER);
 
         MinecraftForge.EVENT_BUS.register(TabListManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(CommandUW.INSTANCE);
@@ -117,10 +131,12 @@ public class ServerMod {
         MinecraftForge.EVENT_BUS.register(HealthManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(WhitelistManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(FlowerSeedManager.INSTANCE);
+        MinecraftForge.EVENT_BUS.register(OreSeedManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(PregenManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(MuteManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(AutoRestartManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(ModCheckManager.INSTANCE);
+        MinecraftForge.EVENT_BUS.register(MobBoostManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(CommandChunkLoad.INSTANCE);
     }
 
@@ -147,6 +163,7 @@ public class ServerMod {
         event.registerServerCommand(new CommandFlowers());
         event.registerServerCommand(new CommandEntities());
         event.registerServerCommand(new CommandOreThin());
+        event.registerServerCommand(new CommandOres());
         event.registerServerCommand(new CommandPregen());
         event.registerServerCommand(new CommandMute());
         event.registerServerCommand(new CommandUnmute());
@@ -154,6 +171,7 @@ public class ServerMod {
         event.registerServerCommand(new CommandTempban());
         event.registerServerCommand(new CommandAutoRestart());
         event.registerServerCommand(new CommandModCheck());
+        event.registerServerCommand(new CommandMobBoost());
         event.registerServerCommand(CommandChunkLoad.INSTANCE);
         LOGGER.info("UnnamedWorld 2 server mod loaded.");
     }

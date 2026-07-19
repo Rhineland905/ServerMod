@@ -164,6 +164,40 @@ public class AbilityManager {
             player.capabilities.isFlying = false;
             player.sendPlayerAbilities();
         }
+        landSafely(player);
+    }
+
+    // Сколько блоков вниз искать твёрдую опору — с запасом под высоту полёта демона.
+    private static final int LAND_SEARCH_RANGE = 320;
+
+    // Если игрок зашёл на сервер зависшим в воздухе БЕЗ возможности лететь (например,
+    // способность демона сняли, пока он был офлайн, летая высоко) — аккуратно ставим
+    // его на ближайший твёрдый блок снизу, чтобы не разбился при заходе.
+    // Действующих демонов не трогаем — у них полёт восстановит tickDemonWings в этот же тик.
+    private void landSafely(EntityPlayerMP player) {
+        if (player.onGround || player.isInWater() || player.isInLava()) return;
+        if (player.capabilities.allowFlying || player.capabilities.isFlying) return;
+        if (player.isCreative() || player.isSpectator()) return;
+
+        World world = player.world;
+        BlockPos.MutableBlockPos scan = new BlockPos.MutableBlockPos(player.getPosition());
+        int startY = scan.getY();
+        for (int y = startY; y > startY - LAND_SEARCH_RANGE; y--) {
+            scan.setY(y);
+            if (!world.isAirBlock(scan) && world.getBlockState(scan).getMaterial().blocksMovement()) {
+                player.setPositionAndUpdate(player.posX, y + 1, player.posZ);
+                player.fallDistance = 0f;
+                player.sendMessage(new TextComponentString(TextFormatting.GRAY
+                        + "Ты завис в воздухе без полёта — тебя аккуратно поставили на землю."));
+                return;
+            }
+        }
+        // Земли под игроком не нашлось в разумных пределах — телепорт на спавн мира (гарантированно безопасно).
+        BlockPos spawn = world.getSpawnPoint();
+        player.setPositionAndUpdate(spawn.getX() + 0.5, spawn.getY(), spawn.getZ() + 0.5);
+        player.fallDistance = 0f;
+        player.sendMessage(new TextComponentString(TextFormatting.GRAY
+                + "Под тобой не нашлось земли — тебя вернули на спавн мира."));
     }
 
     // Обновляет индекс anyAbility: убирает игрока, если у него не осталось способностей

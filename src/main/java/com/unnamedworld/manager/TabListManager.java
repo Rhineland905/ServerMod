@@ -28,9 +28,10 @@ public class TabListManager {
     // Логотип в табе рисуется КАК КАРТИНКА через шрифт-ресурспак UnnamedWorld:
     // хедер — это сетка PUA-символов U+E000.., которым ресурспак сопоставил плитки
     // лого (страница textures/font/unicode_page_e0.png + правленый glyph_sizes.bin).
-    // Сетка 32×8 = 256 плиток. Без этого ресурспака клиент символы не отрисует.
-    private static final int LOGO_COLS = 32;
-    private static final int LOGO_ROWS = 8;
+    // Сетка 20×5 = 100 плиток (уменьшена с 32×8). Сетка ДОЛЖНА совпадать с нарезкой
+    // в ресурспаке. Без этого ресурспака клиент символы не отрисует.
+    private static final int LOGO_COLS = 20;
+    private static final int LOGO_ROWS = 5;
     private static final int LOGO_PUA_START = 0xE000;
 
     public void init() {

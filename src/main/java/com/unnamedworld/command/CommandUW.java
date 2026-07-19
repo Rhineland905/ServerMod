@@ -84,6 +84,8 @@ public class CommandUW extends CommandBase {
             msg(sender, TextFormatting.YELLOW, "/vanish [игрок]                  " + TextFormatting.GRAY + "- скрыть игрока (алиас /v)");
             msg(sender, TextFormatting.YELLOW, "/uwwhitelist <on|off|add|remove|list|status>  " + TextFormatting.GRAY + "- вайтлист (алиас /uwwl)");
             msg(sender, TextFormatting.YELLOW, "/opmode  " + TextFormatting.GRAY + "- режим ОПа/игрока (своя инвентарка)");
+            msg(sender, TextFormatting.YELLOW, "/modcheck <игрок>|blacklist|block|unblock <modid>  " + TextFormatting.GRAY + "- моды/ресурспаки клиента");
+            msg(sender, TextFormatting.YELLOW, "/modcheck version [<x.y>|off] | reload | tg <test|reload|status>  " + TextFormatting.GRAY + "- проверка клиента и Telegram");
 
             msg(sender, TextFormatting.DARK_AQUA, "" + TextFormatting.BOLD + "• Способности и косметика:");
             msg(sender, TextFormatting.YELLOW, "/ability give|remove <игрок> <warden|demon|fish|blaze|void|assassin>");
@@ -98,12 +100,17 @@ public class CommandUW extends CommandBase {
             msg(sender, TextFormatting.YELLOW, "/pregen <half>|auto <half>|at <x> <z> <half>|stop|resume|status  " + TextFormatting.GRAY + "- пре-ген");
             msg(sender, TextFormatting.YELLOW, "/orethin <радиус>|area <half>|auto <half> [%] [maxY minY] [блок] [замена]  " + TextFormatting.GRAY + "- прореживание руды");
             msg(sender, TextFormatting.YELLOW, "/uwflowers <status|on|off|seed [радиус]>  " + TextFormatting.GRAY + "- цветы Botania");
+            msg(sender, TextFormatting.YELLOW, "/uwores <status|on|off|seed|reset [радиус]>  " + TextFormatting.GRAY + "- руды HBM (обход CC)");
             msg(sender, TextFormatting.YELLOW, "/chunkload [xzR [minY maxY] [dim]] | stop | status  " + TextFormatting.GRAY + "- прогрузка");
             msg(sender, TextFormatting.YELLOW, "/nospawn <id> <on|off>|list  |  /noai <id> <on|off>  |  /purge <id> [block]");
             msg(sender, TextFormatting.YELLOW, "/endportal <on|off>");
+            msg(sender, TextFormatting.YELLOW, "/autorestart every <мин>|in <мин>|now|cancel|status  " + TextFormatting.GRAY + "- авто-рестарт (алиас /arestart)");
+            msg(sender, TextFormatting.YELLOW, "/autorestart warn <ЧЧ:ММ|off>  " + TextFormatting.GRAY + "- предупреждения перед рестартом панели");
+            msg(sender, TextFormatting.YELLOW, "/mobboost <status|on|off|cap <N>|interval <тиков>|test>  " + TextFormatting.GRAY + "- доспавн мобов (обход CC)");
 
             msg(sender, TextFormatting.DARK_AQUA, "" + TextFormatting.BOLD + "• Города и репорты:");
             msg(sender, TextFormatting.YELLOW, "/town create|delete <название>  |  /town member add|remove <игрок> [город]");
+            msg(sender, TextFormatting.YELLOW, "/town point add|undo|clear|list  " + TextFormatting.GRAY + "- разметка города по точкам (полигон, ≥3)");
             msg(sender, TextFormatting.YELLOW, "/reports [list [all]|resolve <id>|delete <id>]");
         }
 
