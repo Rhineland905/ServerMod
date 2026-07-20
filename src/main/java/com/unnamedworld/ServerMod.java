@@ -63,6 +63,8 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import com.unnamedworld.command.OilGen;
+import com.unnamedworld.manager.OilSeedManager;
 
 import java.io.File;
 
@@ -138,6 +140,9 @@ public class ServerMod {
         MinecraftForge.EVENT_BUS.register(ModCheckManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(MobBoostManager.INSTANCE);
         MinecraftForge.EVENT_BUS.register(CommandChunkLoad.INSTANCE);
+
+        OilSeedManager.INSTANCE.init(configDir);
+        MinecraftForge.EVENT_BUS.register(OilSeedManager.INSTANCE);
     }
 
     @Mod.EventHandler
@@ -172,6 +177,8 @@ public class ServerMod {
         event.registerServerCommand(new CommandAutoRestart());
         event.registerServerCommand(new CommandModCheck());
         event.registerServerCommand(new CommandMobBoost());
+        event.registerServerCommand(new OilGen());
+
         event.registerServerCommand(CommandChunkLoad.INSTANCE);
         LOGGER.info("UnnamedWorld 2 server mod loaded.");
     }
